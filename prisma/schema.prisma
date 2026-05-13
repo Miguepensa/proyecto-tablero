@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  LIDER
+  COLABORADOR
+}
+
+enum ProjectStatus {
+  PENDIENTE
+  EN_PROGRESO
+  BLOQUEADO
+  TERMINADO
+}
+
+enum StoryStatus {
+  BACKLOG
+  PENDIENTE
+  EN_PROGRESO
+  REVISION
+  TERMINADO
+}
+
+enum TaskStatus {
+  PENDIENTE
+  EN_PROGRESO
+  BLOQUEADO
+  TERMINADO
+  CANCELADO
+}
+
+enum Priority {
+  BAJA
+  MEDIA
+  ALTA
+  CRITICA
+}
+
+model User {
+  id              String      @id @default(cuid())
+  name            String
+  email           String      @unique
+  passwordHash    String?
+  role            UserRole    @default(COLABORADOR)
+  active          Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  ownedProjects   Project[]   @relation("ProjectOwner")
+  assignedStories UserStory[] @relation("StoryAssignedTo")
+  createdStories  UserStory[] @relation("StoryCreatedBy")
+
+  assignedTasks   StoryTask[] @relation("TaskAssignedTo")
+  createdTasks    StoryTask[] @relation("TaskCreatedBy")
+  taskActivities  TaskActivity[]
+
+  auditLogs       AuditLog[]
+}
+
+model Project {
+  id               String        @id @default(cuid())
+  name             String
+  description      String?
+  status           ProjectStatus @default(PENDIENTE)
+  ownerId          String
+  startDate        DateTime?
+  estimatedEndDate DateTime?
+  actualEndDate    DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  owner            User          @relation("ProjectOwner", fields: [ownerId], references: [id])
+  stories          UserStory[]
+}
+
+model UserStory {
+  id               String      @id @default(cuid())
+  title            String
+  description      String?
+  status           StoryStatus @default(BACKLOG)
+  priority         Priority    @default(MEDIA)
+  projectId        String
+  assignedToId     String
+  createdById      String
+  startDate        DateTime?
+  estimatedEndDate DateTime?
+  actualEndDate    DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  project          Project     @relation(fields: [projectId], references: [id])
+  assignedTo       User        @relation("StoryAssignedTo", fields: [assignedToId], references: [id])
+  createdBy        User        @relation("StoryCreatedBy", fields: [createdById], references: [id])
+
+  tasks            StoryTask[]
+}
+
+model StoryTask {
+  id               String     @id @default(cuid())
+  userStoryId      String
+  title            String
+  description      String?
+  status           TaskStatus @default(PENDIENTE)
+  priority         Priority   @default(MEDIA)
+
+  assignedToId     String?
+  createdById      String
+
+  startDate        DateTime?
+  estimatedEndDate DateTime?
+  actualEndDate    DateTime?
+
+  sortOrder        Int        @default(0)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  userStory        UserStory  @relation(fields: [userStoryId], references: [id], onDelete: Cascade)
+  assignedTo       User?      @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
+  createdBy        User       @relation("TaskCreatedBy", fields: [createdById], references: [id])
+
+  activities       TaskActivity[]
+}
+
+model TaskActivity {
+  id              String    @id @default(cuid())
+  taskId          String
+  userId          String
+  comment         String
+  percentComplete Int?
+  hoursSpent      Float?
+  activityDate    DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+
+  task            StoryTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  entityType String
+  entityId   String
+  action     String
+  oldValues  Json?
+  newValues  Json?
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id])
+}
