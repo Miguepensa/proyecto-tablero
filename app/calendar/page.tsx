@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 async function getProjects() {
-  const res = await fetch("http://localhost:3000/api/projects", {
+  const res = await fetch("https://proyecto-tablero.vercel.app/api/projects", {
     cache: "no-store",
   });
 
@@ -13,7 +13,7 @@ async function getProjects() {
 }
 
 async function getStories() {
-  const res = await fetch("http://localhost:3000/api/stories", {
+  const res = await fetch("https://proyecto-tablero.vercel.app/api/stories", {
     cache: "no-store",
   });
 

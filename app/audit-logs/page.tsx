@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 async function getLogs() {
-  const res = await fetch("http://localhost:3000/api/audit-logs", {
+  const res = await fetch("https://proyecto-tablero.vercel.app/api/audit-logs", {
     cache: "no-store",
   });
 
