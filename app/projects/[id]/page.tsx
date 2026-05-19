@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import BoardClient from "./BoardClient";
 
 type Project = {
@@ -29,28 +30,48 @@ type Story = {
   actualEndDate?: string | null;
 };
 
-async function getProjects() {
-  const res = await fetch("http://localhost:3000/api/projects", {
-    cache: "no-store",
-  });
+async function getBaseUrl() {
+  const headersList = await headers();
+  const host = headersList.get("host");
 
-  if (!res.ok) {
-    throw new Error("No se pudieron cargar los proyectos");
+  if (!host) {
+    return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   }
 
-  return res.json();
+  const isLocalhost =
+    host.startsWith("localhost") || host.startsWith("127.0.0.1");
+
+  const protocol = isLocalhost ? "http" : "https";
+
+  return `${protocol}://${host}`;
 }
 
-async function getStories() {
-  const res = await fetch("http://localhost:3000/api/stories", {
-    cache: "no-store",
-  });
+async function fetchJson<T>(path: string, fallback: T): Promise<T> {
+  const baseUrl = await getBaseUrl();
 
-  if (!res.ok) {
-    throw new Error("No se pudieron cargar las historias");
+  try {
+    const res = await fetch(`${baseUrl}${path}`, {
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      console.error(`Error al cargar ${path}: ${res.status} ${res.statusText}`);
+      return fallback;
+    }
+
+    return res.json();
+  } catch (error) {
+    console.error(`Error al conectar con ${path}:`, error);
+    return fallback;
   }
+}
 
-  return res.json();
+async function getProjects(): Promise<Project[]> {
+  return fetchJson<Project[]>("/api/projects", []);
+}
+
+async function getStories(): Promise<Story[]> {
+  return fetchJson<Story[]>("/api/stories", []);
 }
 
 function formatDate(date?: string | null) {
