@@ -337,12 +337,21 @@ export default async function ProjectBoardPage({
                 </p>
               </div>
 
-              <Link
-                href="/stories"
-                className="rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-bold text-white shadow-sm hover:bg-blue-700"
-              >
-                + Nueva historia
-              </Link>
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href={`/projects/${project.id}/edit`}
+                  className="rounded-2xl bg-slate-950 px-5 py-3 text-center text-sm font-bold text-white shadow-sm hover:bg-slate-800"
+                >
+                  Editar proyecto
+                </Link>
+
+                <Link
+                  href="/stories"
+                  className="rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-bold text-white shadow-sm hover:bg-blue-700"
+                >
+                  + Nueva historia
+                </Link>
+              </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
