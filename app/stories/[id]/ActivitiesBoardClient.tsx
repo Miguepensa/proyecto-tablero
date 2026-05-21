@@ -115,6 +115,20 @@ function formatDateForInput(date?: string | null) {
   return parsedDate.toISOString().slice(0, 10);
 }
 
+function getStatusLabel(status: string) {
+  return (
+    statusOptions.find((option) => option.value === status)?.label ??
+    "Sin estatus"
+  );
+}
+
+function getPriorityLabel(priority: string) {
+  return (
+    priorityOptions.find((option) => option.value === priority)?.label ??
+    "Sin prioridad"
+  );
+}
+
 export default function ActivitiesBoardClient({ initialStory, users }: Props) {
   const [story, setStory] = useState<Story>(initialStory);
 
@@ -125,6 +139,7 @@ export default function ActivitiesBoardClient({ initialStory, users }: Props) {
 
   const [showActivityModal, setShowActivityModal] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
 
   const [form, setForm] = useState(emptyForm);
 
@@ -259,6 +274,44 @@ export default function ActivitiesBoardClient({ initialStory, users }: Props) {
 
     cancelEditing();
     await reloadStory();
+  }
+
+  async function changeActivityStatus(
+    activity: StoryActivity,
+    newStatus: string
+  ) {
+    setUpdatingStatusId(activity.id);
+
+    const res = await fetch(`/api/tasks/${activity.id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: activity.title,
+        description: activity.description ?? "",
+        assignedToId: activity.assignedToId ?? activity.assignedTo?.id ?? null,
+        priority: activity.priority,
+        status: newStatus,
+        startDate: formatDateForInput(activity.startDate) || null,
+        estimatedEndDate: formatDateForInput(activity.estimatedEndDate) || null,
+      }),
+    });
+
+    setUpdatingStatusId(null);
+
+    if (!res.ok) {
+      const data = await res.json();
+      alert(data.error ?? "No se pudo actualizar el estatus.");
+      return;
+    }
+
+    setStory((prevStory) => ({
+      ...prevStory,
+      tasks: (prevStory.tasks ?? []).map((item) =>
+        item.id === activity.id ? { ...item, status: newStatus } : item
+      ),
+    }));
   }
 
   async function deleteActivity(activityId: string) {
@@ -499,6 +552,53 @@ export default function ActivitiesBoardClient({ initialStory, users }: Props) {
                               </p>
                             </div>
 
+                            <div className="mb-4 rounded-2xl bg-slate-50 p-3">
+                              <p className="text-xs font-medium text-slate-500">
+                                Responsable
+                              </p>
+                              <p className="mt-1 text-sm font-bold text-slate-950">
+                                {activity.assignedTo?.name || "Sin asignar"}
+                              </p>
+
+                              <div className="mt-3 grid gap-2 text-xs text-slate-600">
+                                <p>
+                                  <span className="font-bold">Prioridad:</span>{" "}
+                                  {getPriorityLabel(activity.priority)}
+                                </p>
+                                <p>
+                                  <span className="font-bold">Estatus:</span>{" "}
+                                  {getStatusLabel(activity.status)}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="mb-3">
+                              <label className="mb-1 block text-xs font-bold text-slate-500">
+                                Modificar estatus
+                              </label>
+
+                              <select
+                                value={activity.status}
+                                disabled={updatingStatusId === activity.id}
+                                onChange={(e) =>
+                                  changeActivityStatus(
+                                    activity,
+                                    e.target.value
+                                  )
+                                }
+                                className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
+                              >
+                                {statusOptions.map((option) => (
+                                  <option
+                                    key={option.value}
+                                    value={option.value}
+                                  >
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
                             <div className="flex gap-2">
                               <button
                                 type="button"
@@ -554,7 +654,7 @@ export default function ActivitiesBoardClient({ initialStory, users }: Props) {
                 }}
                 className="rounded-full bg-slate-100 px-3 py-1 text-sm font-bold text-slate-500 hover:bg-slate-200"
               >
-                ✕
+                ×
               </button>
             </div>
 
