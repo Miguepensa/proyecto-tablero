@@ -1,5 +1,6 @@
-"use client";
+﻿"use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 type Story = {
@@ -21,42 +22,52 @@ type Props = {
 };
 
 const statusOptions = [
-  { value: "BACKLOG", label: "Backlog" },
-  { value: "PENDIENTE", label: "Pendiente" },
-  { value: "EN_PROGRESO", label: "En progreso" },
-  { value: "REVISION", label: "Revisión" },
-  { value: "TERMINADO", label: "Terminado" },
+  { value: "ANALISIS", label: "Analisis" },
+  { value: "DISENO", label: "diseño" },
+  {
+    value: "DESARROLLO_IMPLEMENTACION",
+    label: "Desarrollo / implementación",
+  },
+  { value: "PRUEBAS", label: "Pruebas" },
+  { value: "TRANSICION", label: "transición" },
+  { value: "PUESTA_EN_MARCHA", label: "puesta en marcha" },
 ];
 
 const columns = [
   {
-    value: "BACKLOG",
-    title: "Backlog",
-    description: "Ideas o historias por iniciar",
+    value: "ANALISIS",
+    title: "Analisis",
+    description: "Etapa de analisis",
     dot: "bg-slate-400",
   },
   {
-    value: "PENDIENTE",
-    title: "Pendiente",
-    description: "Listas para comenzar",
+    value: "DISENO",
+    title: "diseño",
+    description: "Etapa de diseño",
     dot: "bg-orange-400",
   },
   {
-    value: "EN_PROGRESO",
-    title: "En progreso",
-    description: "Trabajo activo",
+    value: "DESARROLLO_IMPLEMENTACION",
+    title: "Desarrollo / implementación",
+    description: "Etapa de desarrollo e implementación",
     dot: "bg-blue-500",
   },
   {
-    value: "REVISION",
-    title: "Revisión",
-    description: "Validación o pruebas",
+    value: "PRUEBAS",
+    title: "Pruebas",
+    description: "Etapa de pruebas",
     dot: "bg-purple-500",
   },
   {
-    value: "TERMINADO",
-    title: "Terminado",
-    description: "Historias cerradas",
+    value: "TRANSICION",
+    title: "transición",
+    description: "Etapa de transición",
+    dot: "bg-amber-500",
+  },
+  {
+    value: "PUESTA_EN_MARCHA",
+    title: "puesta en marcha",
+    description: "Etapa de puesta en marcha",
     dot: "bg-green-500",
   },
 ];
@@ -129,7 +140,7 @@ export default function BoardClient({ initialStories }: Props) {
 
   return (
     <div className="overflow-x-auto pb-2">
-      <div className="grid min-w-[1180px] grid-cols-5 gap-4">
+      <div className="grid min-w-[1440px] grid-cols-6 gap-4">
         {columns.map((column) => {
           const columnStories = getStoriesByStatus(column.value);
 
@@ -210,6 +221,13 @@ export default function BoardClient({ initialStories }: Props) {
                             </option>
                           ))}
                         </select>
+
+                        <Link
+                          href={`/stories/${story.id}`}
+                          className="mt-3 inline-flex w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700"
+                        >
+                          Ver actividades
+                        </Link>
                       </article>
                     );
                   })
