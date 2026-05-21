@@ -84,7 +84,21 @@ function formatDate(date?: string | null) {
   });
 }
 
-function getStatusLabel(status?: string) {
+function normalizeStoryStatus(status?: string) {
+  const legacyStatusMap: Record<string, string> = {
+    BACKLOG: "ANALISIS",
+    PENDIENTE: "DISENO",
+    EN_PROGRESO: "DESARROLLO_IMPLEMENTACION",
+    REVISION: "PRUEBAS",
+    TERMINADO: "PUESTA_EN_MARCHA",
+  };
+
+  if (!status) return "";
+
+  return legacyStatusMap[status] || status;
+}
+
+function getProjectStatusLabel(status?: string) {
   if (status === "TERMINADO") return "Completado";
   if (status === "EN_PROGRESO") return "En progreso";
   if (status === "BLOQUEADO") return "Retrasado";
@@ -92,7 +106,7 @@ function getStatusLabel(status?: string) {
   return status || "Sin estado";
 }
 
-function getStatusClasses(status?: string) {
+function getProjectStatusClasses(status?: string) {
   if (status === "TERMINADO") {
     return "border-green-200 bg-green-50 text-green-700";
   }
@@ -103,6 +117,47 @@ function getStatusClasses(status?: string) {
 
   if (status === "BLOQUEADO") {
     return "border-red-200 bg-red-50 text-red-700";
+  }
+
+  return "border-slate-200 bg-slate-50 text-slate-700";
+}
+
+function getStoryStatusLabel(status?: string) {
+  const normalizedStatus = normalizeStoryStatus(status);
+
+  if (normalizedStatus === "ANALISIS") return "Analisis";
+  if (normalizedStatus === "DISENO") return "diseño";
+  if (normalizedStatus === "DESARROLLO_IMPLEMENTACION") {
+    return "Desarrollo / implementación";
+  }
+  if (normalizedStatus === "PRUEBAS") return "Pruebas";
+  if (normalizedStatus === "TRANSICION") return "transición";
+  if (normalizedStatus === "PUESTA_EN_MARCHA") return "puesta en marcha";
+
+  return status || "Sin estado";
+}
+
+function getStoryStatusClasses(status?: string) {
+  const normalizedStatus = normalizeStoryStatus(status);
+
+  if (normalizedStatus === "PUESTA_EN_MARCHA") {
+    return "border-green-200 bg-green-50 text-green-700";
+  }
+
+  if (normalizedStatus === "DESARROLLO_IMPLEMENTACION") {
+    return "border-blue-200 bg-blue-50 text-blue-700";
+  }
+
+  if (normalizedStatus === "PRUEBAS") {
+    return "border-purple-200 bg-purple-50 text-purple-700";
+  }
+
+  if (normalizedStatus === "TRANSICION") {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+
+  if (normalizedStatus === "DISENO") {
+    return "border-orange-200 bg-orange-50 text-orange-700";
   }
 
   return "border-slate-200 bg-slate-50 text-slate-700";
@@ -193,11 +248,23 @@ function Sidebar() {
 function StatusBadge({ status }: { status?: string }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold ${getStatusClasses(
+      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold ${getProjectStatusClasses(
         status
       )}`}
     >
-      {getStatusLabel(status)}
+      {getProjectStatusLabel(status)}
+    </span>
+  );
+}
+
+function StoryStatusBadge({ status }: { status?: string }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold ${getStoryStatusClasses(
+        status
+      )}`}
+    >
+      {getStoryStatusLabel(status)}
     </span>
   );
 }
@@ -292,20 +359,21 @@ export default async function ProjectBoardPage({
     );
   }
 
-  const backlogStories = projectStories.filter(
-    (story) => story.status === "BACKLOG"
+  const analysisStories = projectStories.filter(
+    (story) => normalizeStoryStatus(story.status) === "ANALISIS"
   ).length;
 
-  const inProgressStories = projectStories.filter(
-    (story) => story.status === "EN_PROGRESO"
-  ).length;
-
-  const reviewStories = projectStories.filter(
-    (story) => story.status === "REVISION"
+  const activeStories = projectStories.filter((story) =>
+    [
+      "DISENO",
+      "DESARROLLO_IMPLEMENTACION",
+      "PRUEBAS",
+      "TRANSICION",
+    ].includes(normalizeStoryStatus(story.status))
   ).length;
 
   const finishedStories = projectStories.filter(
-    (story) => story.status === "TERMINADO"
+    (story) => normalizeStoryStatus(story.status) === "PUESTA_EN_MARCHA"
   ).length;
 
   return (
@@ -382,21 +450,21 @@ export default async function ProjectBoardPage({
             />
 
             <MetricCard
-              title="Backlog"
-              value={backlogStories}
-              subtitle="Pendientes por iniciar"
+              title="Analisis"
+              value={analysisStories}
+              subtitle="Etapa de analisis"
             />
 
             <MetricCard
-              title="En progreso"
-              value={inProgressStories + reviewStories}
-              subtitle="Activas o en revisión"
+              title="En proceso"
+              value={activeStories}
+              subtitle="Diseño, desarrollo, pruebas o transición"
             />
 
             <MetricCard
-              title="Terminadas"
+              title="Puesta en marcha"
               value={finishedStories}
-              subtitle="Historias cerradas"
+              subtitle="Historias en etapa final"
             />
           </div>
 
@@ -416,7 +484,7 @@ export default async function ProjectBoardPage({
                   {projectStories.length} historias
                 </span>
                 <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-green-700">
-                  {finishedStories} terminadas
+                  {finishedStories} en puesta en marcha
                 </span>
               </div>
             </div>
@@ -470,7 +538,7 @@ export default async function ProjectBoardPage({
 
                       <div className="flex flex-col items-end gap-2">
                         <PriorityBadge priority={story.priority} />
-                        <StatusBadge status={story.status} />
+                        <StoryStatusBadge status={story.status} />
                       </div>
                     </div>
 
@@ -495,6 +563,22 @@ export default async function ProjectBoardPage({
                           {formatDate(story.actualEndDate)}
                         </strong>
                       </div>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <Link
+                        href={`/stories/${story.id}`}
+                        className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700"
+                      >
+                        Ver actividades
+                      </Link>
+
+                      <Link
+                        href="/stories"
+                        className="inline-flex items-center justify-center rounded-2xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-200"
+                      >
+                        Modificar historia
+                      </Link>
                     </div>
                   </article>
                 ))}
