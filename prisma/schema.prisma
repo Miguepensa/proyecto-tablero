@@ -21,11 +21,12 @@ enum ProjectStatus {
 }
 
 enum StoryStatus {
-  BACKLOG
-  PENDIENTE
-  EN_PROGRESO
-  REVISION
-  TERMINADO
+  ANALISIS
+  DISENO
+  DESARROLLO_IMPLEMENTACION
+  PRUEBAS
+  TRANSICION
+  PUESTA_EN_MARCHA
 }
 
 enum TaskStatus {
@@ -84,7 +85,7 @@ model UserStory {
   id               String      @id @default(cuid())
   title            String
   description      String?
-  status           StoryStatus @default(BACKLOG)
+  status           StoryStatus @default(ANALISIS)
   priority         Priority    @default(MEDIA)
   projectId        String
   assignedToId     String
