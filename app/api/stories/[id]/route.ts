@@ -50,6 +50,27 @@ export async function PATCH(
   const { id } = await params;
   const body = await req.json();
 
+  const url = new URL(req.url);
+  const userId = url.searchParams.get("userId");
+
+  if (!userId) {
+    return NextResponse.json(
+      { error: "Usuario requerido" },
+      { status: 400 }
+    );
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user || user.role !== "ADMIN") {
+    return NextResponse.json(
+      { error: "Solo el administrador puede modificar historias" },
+      { status: 403 }
+    );
+  }
+
   const existingStory = await prisma.userStory.findUnique({
     where: { id },
   });
@@ -64,53 +85,22 @@ export async function PATCH(
   const updatedStory = await prisma.userStory.update({
     where: { id },
     data: {
-      title: body.title ?? existingStory.title,
-      description: body.description ?? existingStory.description,
-      status: body.status ?? existingStory.status,
-      priority: body.priority ?? existingStory.priority,
-      assignedToId: body.assignedToId ?? existingStory.assignedToId,
-      startDate:
-        body.startDate !== undefined
-          ? body.startDate
-            ? new Date(body.startDate)
-            : null
-          : existingStory.startDate,
-      estimatedEndDate:
-        body.estimatedEndDate !== undefined
-          ? body.estimatedEndDate
-            ? new Date(body.estimatedEndDate)
-            : null
-          : existingStory.estimatedEndDate,
-      actualEndDate:
-        body.actualEndDate !== undefined
-          ? body.actualEndDate
-            ? new Date(body.actualEndDate)
-            : null
-          : body.status === "TERMINADO"
-            ? new Date()
-            : existingStory.actualEndDate,
+      title: body.title,
+      description: body.description,
+      priority: body.priority,
+      status: body.status,
+      projectId: body.projectId,
+      assignedToId: body.assignedToId || null,
+      startDate: body.startDate ? new Date(body.startDate) : null,
+      estimatedEndDate: body.estimatedEndDate
+        ? new Date(body.estimatedEndDate)
+        : null,
+      actualEndDate: body.actualEndDate ? new Date(body.actualEndDate) : null,
     },
     include: {
       project: true,
       assignedTo: true,
       createdBy: true,
-      tasks: {
-        include: {
-          assignedTo: true,
-          createdBy: true,
-          activities: {
-            include: {
-              user: true,
-            },
-            orderBy: {
-              createdAt: "desc",
-            },
-          },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
     },
   });
 
@@ -122,21 +112,22 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("userId");
+
+  const url = new URL(req.url);
+  const userId = url.searchParams.get("userId");
 
   if (!userId) {
     return NextResponse.json(
-      { error: "Falta el usuario que intenta eliminar" },
+      { error: "Usuario requerido" },
       { status: 400 }
     );
   }
 
-  const currentUser = await prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: userId },
   });
 
-  if (!currentUser || currentUser.role !== "ADMIN") {
+  if (!user || user.role !== "ADMIN") {
     return NextResponse.json(
       { error: "Solo el administrador puede eliminar historias" },
       { status: 403 }
@@ -158,8 +149,5 @@ export async function DELETE(
     where: { id },
   });
 
-  return NextResponse.json({
-    ok: true,
-    message: "Historia eliminada correctamente",
-  });
+  return NextResponse.json({ ok: true });
 }

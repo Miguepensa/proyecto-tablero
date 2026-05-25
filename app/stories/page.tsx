@@ -22,6 +22,7 @@ type Story = {
   priority: string;
   status: string;
   projectId: string;
+  assignedToId?: string | null;
   startDate?: string | null;
   estimatedEndDate?: string | null;
   actualEndDate?: string | null;
@@ -98,11 +99,29 @@ function getPriorityClasses(priority: string) {
 function formatDate(date?: string | null) {
   if (!date) return "Sin fecha";
 
-  return new Date(date).toLocaleDateString("es-MX", {
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "Sin fecha";
+  }
+
+  return parsedDate.toLocaleDateString("es-MX", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   });
+}
+
+function formatDateForInput(date?: string | null) {
+  if (!date) return "";
+
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "";
+  }
+
+  return parsedDate.toISOString().slice(0, 10);
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -230,6 +249,7 @@ export default function StoriesPage() {
 
   const [loading, setLoading] = useState(false);
   const [showStoryModal, setShowStoryModal] = useState(false);
+  const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("TODOS");
   const [priorityFilter, setPriorityFilter] = useState("TODOS");
@@ -360,38 +380,96 @@ export default function StoriesPage() {
     setActualEndDate("");
   }
 
+  function closeStoryModal() {
+    resetForm();
+    setEditingStoryId(null);
+    setShowStoryModal(false);
+  }
+
+  function openCreateStoryModal() {
+    resetForm();
+    setEditingStoryId(null);
+    setShowStoryModal(true);
+  }
+
+  function startEditingStory(story: Story) {
+    setEditingStoryId(story.id);
+    setTitle(story.title);
+    setDescription(story.description ?? "");
+    setPriority(story.priority);
+    setStatus(story.status);
+    setProjectId(story.projectId);
+    setAssignedToId(story.assignedToId ?? "");
+    setStartDate(formatDateForInput(story.startDate));
+    setEstimatedEndDate(formatDateForInput(story.estimatedEndDate));
+    setActualEndDate(formatDateForInput(story.actualEndDate));
+    setShowStoryModal(true);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
 
-    const res = await fetch("/api/stories", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        title,
-        description,
-        priority,
-        status,
-        projectId,
-        assignedToId,
-        createdById: currentUserId || assignedToId,
-        startDate: startDate || null,
-        estimatedEndDate: estimatedEndDate || null,
-        actualEndDate: actualEndDate || null,
-      }),
-    });
-
-    if (res.ok) {
-      resetForm();
-      setShowStoryModal(false);
-      await loadStories();
-    } else {
-      alert("No se pudo crear la historia");
+    if (!currentUserId) {
+      alert("Selecciona un usuario actual.");
+      return;
     }
 
+    if (editingStoryId && !isAdmin) {
+      alert("Solo el administrador puede modificar historias.");
+      return;
+    }
+
+    setLoading(true);
+
+    const isEditing = Boolean(editingStoryId);
+
+    const payload = {
+      title,
+      description,
+      priority,
+      status,
+      projectId,
+      assignedToId: assignedToId || null,
+      startDate: startDate || null,
+      estimatedEndDate: estimatedEndDate || null,
+      actualEndDate: actualEndDate || null,
+    };
+
+    const res = await fetch(
+      isEditing
+        ? `/api/stories/${editingStoryId}?userId=${currentUserId}`
+        : "/api/stories",
+      {
+        method: isEditing ? "PATCH" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(
+          isEditing
+            ? payload
+            : {
+                ...payload,
+                createdById: currentUserId || assignedToId,
+              }
+        ),
+      }
+    );
+
     setLoading(false);
+
+    if (res.ok) {
+      closeStoryModal();
+      await loadStories();
+      return;
+    }
+
+    const data = await res.json().catch(() => null);
+    alert(
+      data?.error ??
+        (isEditing
+          ? "No se pudo actualizar la historia"
+          : "No se pudo crear la historia")
+    );
   }
 
   return (
@@ -416,7 +494,7 @@ export default function StoriesPage() {
             <button
               type="button"
               className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700"
-              onClick={() => setShowStoryModal(true)}
+              onClick={openCreateStoryModal}
             >
               + Nueva historia
             </button>
@@ -513,7 +591,7 @@ export default function StoriesPage() {
                 <button
                   type="button"
                   className="mt-6 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-700"
-                  onClick={() => setShowStoryModal(true)}
+                  onClick={openCreateStoryModal}
                 >
                   + Nueva historia
                 </button>
@@ -580,6 +658,16 @@ export default function StoriesPage() {
                     </div>
 
                     <div className="mt-5 flex flex-col justify-end gap-3 sm:flex-row">
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => startEditingStory(story)}
+                          className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 text-center text-sm font-bold text-amber-700 hover:bg-amber-100"
+                        >
+                          Editar
+                        </button>
+                      )}
+
                       <Link
                         href={`/projects/${story.projectId}`}
                         className="rounded-2xl border border-slate-200 px-5 py-3 text-center text-sm font-bold text-slate-700 hover:bg-slate-50"
@@ -621,20 +709,19 @@ export default function StoriesPage() {
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-bold text-slate-950">
-                  Nueva historia
+                  {editingStoryId ? "Editar historia" : "Nueva historia"}
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Captura la información principal de la historia de usuario.
+                  {editingStoryId
+                    ? "Modifica la información principal de la historia de usuario."
+                    : "Captura la información principal de la historia de usuario."}
                 </p>
               </div>
 
               <button
                 type="button"
                 className="rounded-full bg-slate-100 px-3 py-1 text-sm font-bold text-slate-500 hover:bg-slate-200"
-                onClick={() => {
-                  resetForm();
-                  setShowStoryModal(false);
-                }}
+                onClick={closeStoryModal}
               >
                 ✕
               </button>
@@ -806,16 +893,17 @@ export default function StoriesPage() {
                   className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-70"
                   disabled={loading}
                 >
-                  {loading ? "Guardando..." : "Crear historia"}
+                  {loading
+                    ? "Guardando..."
+                    : editingStoryId
+                    ? "Guardar cambios"
+                    : "Crear historia"}
                 </button>
 
                 <button
                   type="button"
                   className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-200"
-                  onClick={() => {
-                    resetForm();
-                    setShowStoryModal(false);
-                  }}
+                  onClick={closeStoryModal}
                 >
                   Cancelar
                 </button>
