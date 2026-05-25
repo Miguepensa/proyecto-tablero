@@ -42,15 +42,38 @@ const priorityOptions = [
 ];
 
 const statusOptions = [
-  { value: "BACKLOG", label: "Backlog" },
-  { value: "PENDIENTE", label: "Pendiente" },
-  { value: "EN_PROGRESO", label: "En progreso" },
-  { value: "REVISION", label: "Revisión" },
-  { value: "TERMINADO", label: "Terminado" },
+  { value: "ANALISIS", label: "Análisis" },
+  { value: "DISENO", label: "Diseño" },
+  {
+    value: "DESARROLLO_IMPLEMENTACION",
+    label: "Desarrollo / implementación",
+  },
+  { value: "PRUEBAS", label: "Pruebas" },
+  { value: "TRANSICION", label: "Transición" },
+  { value: "PUESTA_EN_MARCHA", label: "Puesta en marcha" },
 ];
 
+function normalizeStoryStatus(status?: string | null) {
+  if (!status) return "ANALISIS";
+
+  if (status === "BACKLOG") return "ANALISIS";
+  if (status === "PENDIENTE") return "ANALISIS";
+  if (status === "EN_PROGRESO") return "DESARROLLO_IMPLEMENTACION";
+  if (status === "REVISION") return "PRUEBAS";
+  if (status === "BLOQUEADO") return "TRANSICION";
+  if (status === "CANCELADO") return "TRANSICION";
+  if (status === "TERMINADO") return "PUESTA_EN_MARCHA";
+
+  return status;
+}
+
 function getStatusLabel(status: string) {
-  return statusOptions.find((option) => option.value === status)?.label ?? status;
+  const normalizedStatus = normalizeStoryStatus(status);
+
+  return (
+    statusOptions.find((option) => option.value === normalizedStatus)?.label ??
+    normalizedStatus
+  );
 }
 
 function getPriorityLabel(priority: string) {
@@ -61,19 +84,29 @@ function getPriorityLabel(priority: string) {
 }
 
 function getStatusClasses(status: string) {
-  if (status === "TERMINADO") {
+  const normalizedStatus = normalizeStoryStatus(status);
+
+  if (normalizedStatus === "PUESTA_EN_MARCHA") {
     return "border-green-200 bg-green-50 text-green-700";
   }
 
-  if (status === "EN_PROGRESO") {
+  if (normalizedStatus === "DESARROLLO_IMPLEMENTACION") {
     return "border-blue-200 bg-blue-50 text-blue-700";
   }
 
-  if (status === "REVISION") {
+  if (normalizedStatus === "DISENO") {
     return "border-purple-200 bg-purple-50 text-purple-700";
   }
 
-  if (status === "PENDIENTE") {
+  if (normalizedStatus === "PRUEBAS") {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+
+  if (normalizedStatus === "TRANSICION") {
+    return "border-indigo-200 bg-indigo-50 text-indigo-700";
+  }
+
+  if (normalizedStatus === "ANALISIS") {
     return "border-orange-200 bg-orange-50 text-orange-700";
   }
 
@@ -239,7 +272,7 @@ export default function StoriesPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("MEDIA");
-  const [status, setStatus] = useState("BACKLOG");
+  const [status, setStatus] = useState("ANALISIS");
   const [projectId, setProjectId] = useState("");
   const [assignedToId, setAssignedToId] = useState("");
   const [currentUserId, setCurrentUserId] = useState("");
@@ -347,7 +380,7 @@ export default function StoriesPage() {
         (story.assignedTo?.name ?? "").toLowerCase().includes(text);
 
       const matchesStatus =
-        statusFilter === "TODOS" || story.status === statusFilter;
+        statusFilter === "TODOS" || normalizeStoryStatus(story.status) === statusFilter;
 
       const matchesPriority =
         priorityFilter === "TODOS" || story.priority === priorityFilter;
@@ -357,24 +390,31 @@ export default function StoriesPage() {
   }, [stories, search, statusFilter, priorityFilter]);
 
   const totalStories = stories.length;
-  const backlogStories = stories.filter(
-    (story) => story.status === "BACKLOG"
+  const analysisStories = stories.filter(
+    (story) => normalizeStoryStatus(story.status) === "ANALISIS"
   ).length;
-  const inProgressStories = stories.filter(
-    (story) => story.status === "EN_PROGRESO"
+  const designStories = stories.filter(
+    (story) => normalizeStoryStatus(story.status) === "DISENO"
   ).length;
-  const finishedStories = stories.filter(
-    (story) => story.status === "TERMINADO"
+  const developmentStories = stories.filter(
+    (story) =>
+      normalizeStoryStatus(story.status) === "DESARROLLO_IMPLEMENTACION"
   ).length;
-  const criticalStories = stories.filter(
-    (story) => story.priority === "CRITICA"
+  const testingStories = stories.filter(
+    (story) => normalizeStoryStatus(story.status) === "PRUEBAS"
+  ).length;
+  const transitionStories = stories.filter(
+    (story) => normalizeStoryStatus(story.status) === "TRANSICION"
+  ).length;
+  const goLiveStories = stories.filter(
+    (story) => normalizeStoryStatus(story.status) === "PUESTA_EN_MARCHA"
   ).length;
 
   function resetForm() {
     setTitle("");
     setDescription("");
     setPriority("MEDIA");
-    setStatus("BACKLOG");
+    setStatus("ANALISIS");
     setStartDate("");
     setEstimatedEndDate("");
     setActualEndDate("");
@@ -397,7 +437,7 @@ export default function StoriesPage() {
     setTitle(story.title);
     setDescription(story.description ?? "");
     setPriority(story.priority);
-    setStatus(story.status);
+    setStatus(normalizeStoryStatus(story.status));
     setProjectId(story.projectId);
     setAssignedToId(story.assignedToId ?? "");
     setStartDate(formatDateForInput(story.startDate));
@@ -500,7 +540,7 @@ export default function StoriesPage() {
             </button>
           </header>
 
-          <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <SummaryCard
               title="Total"
               value={totalStories}
@@ -508,27 +548,39 @@ export default function StoriesPage() {
             />
 
             <SummaryCard
-              title="Backlog"
-              value={backlogStories}
-              subtitle="Pendientes por iniciar"
+              title="Análisis"
+              value={analysisStories}
+              subtitle="Historias en análisis"
             />
 
             <SummaryCard
-              title="En progreso"
-              value={inProgressStories}
-              subtitle="Historias activas"
+              title="Diseño"
+              value={designStories}
+              subtitle="Historias en diseño"
             />
 
             <SummaryCard
-              title="Terminadas"
-              value={finishedStories}
-              subtitle="Historias cerradas"
+              title="Desarrollo / implementación"
+              value={developmentStories}
+              subtitle="Historias en desarrollo"
             />
 
             <SummaryCard
-              title="Críticas"
-              value={criticalStories}
-              subtitle="Alta prioridad"
+              title="Pruebas"
+              value={testingStories}
+              subtitle="Historias en validación"
+            />
+
+            <SummaryCard
+              title="Transición"
+              value={transitionStories}
+              subtitle="Historias en transición"
+            />
+
+            <SummaryCard
+              title="Puesta en marcha"
+              value={goLiveStories}
+              subtitle="Historias listas o liberadas"
             />
           </div>
 
@@ -797,7 +849,7 @@ export default function StoriesPage() {
                   </span>
                   <select
                     className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    value={status}
+                    value={normalizeStoryStatus(status)}
                     onChange={(e) => setStatus(e.target.value)}
                   >
                     {statusOptions.map((option) => (
