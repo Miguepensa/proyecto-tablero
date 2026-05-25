@@ -47,43 +47,53 @@ type Props = {
 
 const columns = [
   {
-    value: "PENDIENTE",
-    title: "Pendiente",
-    description: "Actividades listas para comenzar",
+    value: "ANALISIS",
+    title: "Análisis",
+    description: "Levantamiento y entendimiento",
     dot: "bg-orange-400",
   },
   {
-    value: "EN_PROGRESO",
-    title: "En progreso",
-    description: "Trabajo activo",
+    value: "DISENO",
+    title: "Diseño",
+    description: "Definición de solución",
+    dot: "bg-purple-500",
+  },
+  {
+    value: "DESARROLLO_IMPLEMENTACION",
+    title: "Desarrollo / implementación",
+    description: "Construcción o configuración",
     dot: "bg-blue-500",
   },
   {
-    value: "BLOQUEADO",
-    title: "Bloqueado",
-    description: "Requiere atención",
-    dot: "bg-red-500",
+    value: "PRUEBAS",
+    title: "Pruebas",
+    description: "Validación funcional",
+    dot: "bg-amber-500",
   },
   {
-    value: "TERMINADO",
-    title: "Terminado",
-    description: "Actividades cerradas",
+    value: "TRANSICION",
+    title: "Transición",
+    description: "Preparación para entrega",
+    dot: "bg-cyan-500",
+  },
+  {
+    value: "PUESTA_EN_MARCHA",
+    title: "Puesta en marcha",
+    description: "Liberación y cierre",
     dot: "bg-green-500",
-  },
-  {
-    value: "CANCELADO",
-    title: "Cancelado",
-    description: "Actividades canceladas",
-    dot: "bg-slate-400",
   },
 ];
 
 const statusOptions = [
-  { value: "PENDIENTE", label: "Pendiente" },
-  { value: "EN_PROGRESO", label: "En progreso" },
-  { value: "BLOQUEADO", label: "Bloqueado" },
-  { value: "TERMINADO", label: "Terminado" },
-  { value: "CANCELADO", label: "Cancelado" },
+  { value: "ANALISIS", label: "Análisis" },
+  { value: "DISENO", label: "Diseño" },
+  {
+    value: "DESARROLLO_IMPLEMENTACION",
+    label: "Desarrollo / implementación",
+  },
+  { value: "PRUEBAS", label: "Pruebas" },
+  { value: "TRANSICION", label: "Transición" },
+  { value: "PUESTA_EN_MARCHA", label: "Puesta en marcha" },
 ];
 
 const priorityOptions = [
@@ -98,10 +108,24 @@ const emptyForm = {
   description: "",
   assignedToId: "",
   priority: "MEDIA",
-  status: "PENDIENTE",
+  status: "ANALISIS",
   startDate: "",
   estimatedEndDate: "",
 };
+
+function normalizeActivityStatus(status?: string | null) {
+  if (!status) return "ANALISIS";
+
+  if (status === "BACKLOG") return "ANALISIS";
+  if (status === "PENDIENTE") return "ANALISIS";
+  if (status === "EN_PROGRESO") return "DESARROLLO_IMPLEMENTACION";
+  if (status === "BLOQUEADO") return "DESARROLLO_IMPLEMENTACION";
+  if (status === "REVISION") return "PRUEBAS";
+  if (status === "TERMINADO") return "PUESTA_EN_MARCHA";
+  if (status === "CANCELADO") return "TRANSICION";
+
+  return status;
+}
 
 function formatDateForInput(date?: string | null) {
   if (!date) return "";
@@ -116,8 +140,10 @@ function formatDateForInput(date?: string | null) {
 }
 
 function getStatusLabel(status: string) {
+  const normalizedStatus = normalizeActivityStatus(status);
+
   return (
-    statusOptions.find((option) => option.value === status)?.label ??
+    statusOptions.find((option) => option.value === normalizedStatus)?.label ??
     "Sin estatus"
   );
 }
@@ -157,7 +183,7 @@ export default function ActivitiesBoardClient({ initialStory, users }: Props) {
     return columns.map((column) => ({
       ...column,
       activities: activities.filter(
-        (activity) => activity.status === column.value
+        (activity) => normalizeActivityStatus(activity.status) === column.value
       ),
     }));
   }, [activities]);
@@ -233,7 +259,7 @@ export default function ActivitiesBoardClient({ initialStory, users }: Props) {
       description: activity.description ?? "",
       assignedToId: activity.assignedToId ?? activity.assignedTo?.id ?? "",
       priority: activity.priority,
-      status: activity.status,
+      status: normalizeActivityStatus(activity.status),
       startDate: formatDateForInput(activity.startDate),
       estimatedEndDate: formatDateForInput(activity.estimatedEndDate),
     });
@@ -382,7 +408,7 @@ export default function ActivitiesBoardClient({ initialStory, users }: Props) {
         </div>
 
         <div className="overflow-x-auto pb-2">
-          <div className="grid min-w-[1180px] grid-cols-5 gap-4">
+          <div className="grid min-w-[1500px] grid-cols-6 gap-4">
             {activitiesByStatus.map((column) => (
               <section
                 key={column.value}
@@ -578,7 +604,7 @@ export default function ActivitiesBoardClient({ initialStory, users }: Props) {
                               </label>
 
                               <select
-                                value={activity.status}
+                                value={normalizeActivityStatus(activity.status)}
                                 disabled={updatingStatusId === activity.id}
                                 onChange={(e) =>
                                   changeActivityStatus(

@@ -49,11 +49,19 @@ type Story = {
 };
 
 const storyStatusLabels: Record<string, string> = {
-  BACKLOG: "Backlog",
-  PENDIENTE: "Pendiente",
-  EN_PROGRESO: "En progreso",
-  REVISION: "Revisión",
-  TERMINADO: "Terminado",
+  BACKLOG: "Análisis",
+  PENDIENTE: "Análisis",
+  ANALISIS: "Análisis",
+  DISENO: "Diseño",
+  EN_PROGRESO: "Desarrollo / implementación",
+  BLOQUEADO: "Desarrollo / implementación",
+  DESARROLLO_IMPLEMENTACION: "Desarrollo / implementación",
+  REVISION: "Pruebas",
+  PRUEBAS: "Pruebas",
+  CANCELADO: "Transición",
+  TRANSICION: "Transición",
+  TERMINADO: "Puesta en marcha",
+  PUESTA_EN_MARCHA: "Puesta en marcha",
 };
 
 const priorityLabels: Record<string, string> = {
@@ -62,6 +70,20 @@ const priorityLabels: Record<string, string> = {
   ALTA: "Alta",
   CRITICA: "Crítica",
 };
+
+function normalizeStatus(status?: string | null) {
+  if (!status) return "ANALISIS";
+
+  if (status === "BACKLOG") return "ANALISIS";
+  if (status === "PENDIENTE") return "ANALISIS";
+  if (status === "EN_PROGRESO") return "DESARROLLO_IMPLEMENTACION";
+  if (status === "BLOQUEADO") return "DESARROLLO_IMPLEMENTACION";
+  if (status === "REVISION") return "PRUEBAS";
+  if (status === "TERMINADO") return "PUESTA_EN_MARCHA";
+  if (status === "CANCELADO") return "TRANSICION";
+
+  return status;
+}
 
 function formatDate(date?: string | null) {
   if (!date) return "Sin fecha";
@@ -96,23 +118,29 @@ function getPriorityClasses(priority?: string | null) {
 }
 
 function getStatusClasses(status?: string | null) {
-  if (status === "TERMINADO") {
+  const normalizedStatus = normalizeStatus(status);
+
+  if (normalizedStatus === "PUESTA_EN_MARCHA") {
     return "border-green-200 bg-green-50 text-green-700";
   }
 
-  if (status === "EN_PROGRESO") {
+  if (normalizedStatus === "DESARROLLO_IMPLEMENTACION") {
     return "border-blue-200 bg-blue-50 text-blue-700";
   }
 
-  if (status === "REVISION") {
+  if (normalizedStatus === "PRUEBAS") {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+
+  if (normalizedStatus === "DISENO") {
     return "border-purple-200 bg-purple-50 text-purple-700";
   }
 
-  if (status === "PENDIENTE") {
-    return "border-orange-200 bg-orange-50 text-orange-700";
+  if (normalizedStatus === "TRANSICION") {
+    return "border-cyan-200 bg-cyan-50 text-cyan-700";
   }
 
-  return "border-slate-200 bg-slate-50 text-slate-700";
+  return "border-orange-200 bg-orange-50 text-orange-700";
 }
 
 function Sidebar() {
@@ -214,13 +242,15 @@ function MetricCard({
 }
 
 function StatusBadge({ status }: { status?: string | null }) {
+  const normalizedStatus = normalizeStatus(status);
+
   return (
     <span
       className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold ${getStatusClasses(
         status
       )}`}
     >
-      {storyStatusLabels[status ?? ""] ?? status ?? "Sin estado"}
+      {storyStatusLabels[normalizedStatus] ?? status ?? "Sin estado"}
     </span>
   );
 }
@@ -310,17 +340,21 @@ export default async function StoryDetailPage({
 
   const activities = story.tasks ?? [];
 
-  const pendingActivities = activities.filter(
-    (activity) => activity.status === "PENDIENTE"
+  const analysisActivities = activities.filter(
+    (activity) => normalizeStatus(activity.status) === "ANALISIS"
   ).length;
 
-  const inProgressActivities = activities.filter(
+  const developmentActivities = activities.filter(
     (activity) =>
-      activity.status === "EN_PROGRESO" || activity.status === "BLOQUEADO"
+      normalizeStatus(activity.status) === "DESARROLLO_IMPLEMENTACION"
   ).length;
 
-  const finishedActivities = activities.filter(
-    (activity) => activity.status === "TERMINADO"
+  const testingActivities = activities.filter(
+    (activity) => normalizeStatus(activity.status) === "PRUEBAS"
+  ).length;
+
+  const launchActivities = activities.filter(
+    (activity) => normalizeStatus(activity.status) === "PUESTA_EN_MARCHA"
   ).length;
 
   return (
@@ -383,7 +417,7 @@ export default async function StoryDetailPage({
             </div>
           </header>
 
-          <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
             <MetricCard
               title="Total actividades"
               value={activities.length}
@@ -391,21 +425,27 @@ export default async function StoryDetailPage({
             />
 
             <MetricCard
-              title="Pendientes"
-              value={pendingActivities}
-              subtitle="Por iniciar"
+              title="Análisis"
+              value={analysisActivities}
+              subtitle="Por analizar"
             />
 
             <MetricCard
-              title="En proceso"
-              value={inProgressActivities}
-              subtitle="Activas o bloqueadas"
+              title="Desarrollo / implementación"
+              value={developmentActivities}
+              subtitle="En construcción"
             />
 
             <MetricCard
-              title="Terminadas"
-              value={finishedActivities}
-              subtitle="Actividades cerradas"
+              title="Pruebas"
+              value={testingActivities}
+              subtitle="En validación"
+            />
+
+            <MetricCard
+              title="Puesta en marcha"
+              value={launchActivities}
+              subtitle="Liberadas o cerradas"
             />
           </div>
 
