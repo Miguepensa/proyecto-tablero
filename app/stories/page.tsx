@@ -731,7 +731,7 @@ export default function StoriesPage() {
                         href={`/stories/${story.id}`}
                         className="rounded-2xl border border-blue-200 bg-blue-50 px-5 py-3 text-center text-sm font-bold text-blue-700 hover:bg-blue-100"
                       >
-                        Ver actividades
+                        Ver requerimientos
                       </Link>
 
                       {isAdmin && (

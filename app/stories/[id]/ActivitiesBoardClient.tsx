@@ -215,7 +215,7 @@ export default function ActivitiesBoardClient({ initialStory, users }: Props) {
     }
 
     if (!form.title.trim()) {
-      alert("Escribe el título de la actividad.");
+      alert("Escribe el título del requerimiento.");
       return;
     }
 
@@ -242,7 +242,7 @@ export default function ActivitiesBoardClient({ initialStory, users }: Props) {
 
     if (!res.ok) {
       const data = await res.json();
-      alert(data.error ?? "No se pudo crear la actividad.");
+      alert(data.error ?? "No se pudo crear el requerimiento.");
       return;
     }
 
@@ -272,7 +272,7 @@ export default function ActivitiesBoardClient({ initialStory, users }: Props) {
 
   async function updateActivity(activityId: string) {
     if (!editForm.title.trim()) {
-      alert("Escribe el título de la actividad.");
+      alert("Escribe el título del requerimiento.");
       return;
     }
 
@@ -294,7 +294,7 @@ export default function ActivitiesBoardClient({ initialStory, users }: Props) {
 
     if (!res.ok) {
       const data = await res.json();
-      alert(data.error ?? "No se pudo actualizar la actividad.");
+      alert(data.error ?? "No se pudo actualizar el requerimiento.");
       return;
     }
 
@@ -347,12 +347,12 @@ export default function ActivitiesBoardClient({ initialStory, users }: Props) {
     }
 
     if (!isAdmin) {
-      alert("Solo el administrador puede eliminar actividades.");
+      alert("Solo el administrador puede eliminar requerimientos.");
       return;
     }
 
     const confirmed = window.confirm(
-      "¿Seguro que deseas eliminar esta actividad?"
+      "¿Seguro que deseas eliminar este requerimiento?"
     );
 
     if (!confirmed) return;
@@ -363,7 +363,7 @@ export default function ActivitiesBoardClient({ initialStory, users }: Props) {
 
     if (!res.ok) {
       const data = await res.json();
-      alert(data.error ?? "No se pudo eliminar la actividad.");
+      alert(data.error ?? "No se pudo eliminar el requerimiento.");
       return;
     }
 
@@ -376,10 +376,10 @@ export default function ActivitiesBoardClient({ initialStory, users }: Props) {
         <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
             <h2 className="text-xl font-bold text-slate-950">
-              Tablero de actividades
+              Tablero de requerimientos funcionales y/o no funcionales
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Seguimiento de actividades relacionadas con esta historia de
+              Seguimiento de requerimientos funcionales y/o no funcionales relacionados con esta historia de
               usuario.
             </p>
           </div>
@@ -402,7 +402,7 @@ export default function ActivitiesBoardClient({ initialStory, users }: Props) {
               onClick={() => setShowActivityModal(true)}
               className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700"
             >
-              + Nueva actividad
+              + Nuevo requerimiento
             </button>
           </div>
         </div>
@@ -436,7 +436,7 @@ export default function ActivitiesBoardClient({ initialStory, users }: Props) {
                 <div className="space-y-3">
                   {column.activities.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-center text-sm text-slate-400">
-                      Sin actividades
+                      Sin requerimientos
                     </div>
                   ) : (
                     column.activities.map((activity) => (
@@ -665,10 +665,10 @@ export default function ActivitiesBoardClient({ initialStory, users }: Props) {
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-bold text-slate-950">
-                  Nueva actividad
+                  Nuevo requerimiento
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Captura una actividad dentro de esta historia de usuario.
+                  Captura un requerimiento funcional o no funcional dentro de esta historia de usuario.
                 </p>
               </div>
 
@@ -832,7 +832,7 @@ export default function ActivitiesBoardClient({ initialStory, users }: Props) {
                   disabled={creating}
                   className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-70"
                 >
-                  {creating ? "Guardando..." : "Crear actividad"}
+                  {creating ? "Guardando..." : "Crear requerimiento"}
                 </button>
 
                 <button

@@ -419,9 +419,9 @@ export default async function StoryDetailPage({
 
           <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
             <MetricCard
-              title="Total actividades"
+              title="Total requerimientos"
               value={activities.length}
-              subtitle="Actividades registradas"
+              subtitle="Requerimientos registrados"
             />
 
             <MetricCard
