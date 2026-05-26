@@ -163,8 +163,8 @@ function formatDateForInput(date?: string | null) {
 function StatusBadge({ status }: { status: string }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold ${getStatusClasses(
-        status
+      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-bold ${getStatusClasses(
+        status,
       )}`}
     >
       {getStatusLabel(status)}
@@ -175,8 +175,8 @@ function StatusBadge({ status }: { status: string }) {
 function PriorityBadge({ priority }: { priority: string }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold ${getPriorityClasses(
-        priority
+      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-bold ${getPriorityClasses(
+        priority,
       )}`}
     >
       {getPriorityLabel(priority)}
@@ -259,10 +259,10 @@ function SummaryCard({
   subtitle: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-medium text-slate-500">{title}</p>
-      <p className="mt-3 text-3xl font-bold text-slate-950">{value}</p>
-      <p className="mt-2 text-sm text-slate-500">{subtitle}</p>
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <p className="text-xs font-medium text-slate-500">{title}</p>
+      <p className="mt-2 text-2xl font-bold text-slate-950">{value}</p>
+      <p className="mt-1 text-xs text-slate-500">{subtitle}</p>
     </div>
   );
 }
@@ -349,7 +349,7 @@ export default function StoriesPage() {
     }
 
     const confirmed = window.confirm(
-      "¿Seguro que deseas eliminar esta historia de usuario?"
+      "¿Seguro que deseas eliminar esta historia de usuario?",
     );
 
     if (!confirmed) return;
@@ -385,7 +385,8 @@ export default function StoriesPage() {
         (story.assignedTo?.name ?? "").toLowerCase().includes(text);
 
       const matchesStatus =
-        statusFilter === "TODOS" || normalizeStoryStatus(story.status) === statusFilter;
+        statusFilter === "TODOS" ||
+        normalizeStoryStatus(story.status) === statusFilter;
 
       const matchesPriority =
         priorityFilter === "TODOS" || story.priority === priorityFilter;
@@ -396,23 +397,23 @@ export default function StoriesPage() {
 
   const totalStories = stories.length;
   const analysisStories = stories.filter(
-    (story) => normalizeStoryStatus(story.status) === "ANALISIS"
+    (story) => normalizeStoryStatus(story.status) === "ANALISIS",
   ).length;
   const designStories = stories.filter(
-    (story) => normalizeStoryStatus(story.status) === "DISENO"
+    (story) => normalizeStoryStatus(story.status) === "DISENO",
   ).length;
   const developmentStories = stories.filter(
     (story) =>
-      normalizeStoryStatus(story.status) === "DESARROLLO_IMPLEMENTACION"
+      normalizeStoryStatus(story.status) === "DESARROLLO_IMPLEMENTACION",
   ).length;
   const testingStories = stories.filter(
-    (story) => normalizeStoryStatus(story.status) === "PRUEBAS"
+    (story) => normalizeStoryStatus(story.status) === "PRUEBAS",
   ).length;
   const transitionStories = stories.filter(
-    (story) => normalizeStoryStatus(story.status) === "TRANSICION"
+    (story) => normalizeStoryStatus(story.status) === "TRANSICION",
   ).length;
   const goLiveStories = stories.filter(
-    (story) => normalizeStoryStatus(story.status) === "PUESTA_EN_MARCHA"
+    (story) => normalizeStoryStatus(story.status) === "PUESTA_EN_MARCHA",
   ).length;
 
   function resetForm() {
@@ -495,9 +496,9 @@ export default function StoriesPage() {
             : {
                 ...payload,
                 createdById: currentUserId || assignedToId,
-              }
+              },
         ),
-      }
+      },
     );
 
     setLoading(false);
@@ -513,7 +514,7 @@ export default function StoriesPage() {
       data?.error ??
         (isEditing
           ? "No se pudo actualizar la historia"
-          : "No se pudo crear la historia")
+          : "No se pudo crear la historia"),
     );
   }
 
@@ -523,29 +524,30 @@ export default function StoriesPage() {
         <Sidebar />
 
         <section className="min-w-0 flex-1">
-          <header className="mb-6 flex flex-col justify-between gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:flex-row md:items-center">
+          <header className="mb-5 flex flex-col justify-between gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:flex-row md:items-center">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-600">
                 Desarrollo
               </p>
-              <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 md:text-4xl">
+              <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 md:text-3xl">
                 Historias de usuario
               </h1>
-              <p className="mt-2 text-sm text-slate-500">
-                Administra historias, responsables, prioridades, estados y fechas.
+              <p className="mt-1 text-xs text-slate-500">
+                Administra historias, responsables, prioridades, estados y
+                fechas.
               </p>
             </div>
 
             <button
               type="button"
-              className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700"
+              className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-blue-700"
               onClick={openCreateStoryModal}
             >
               + Nueva historia
             </button>
           </header>
 
-          <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <SummaryCard
               title="Total"
               value={totalStories}
@@ -589,10 +591,10 @@ export default function StoriesPage() {
             />
           </div>
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="mb-6 flex flex-col justify-between gap-4 xl:flex-row xl:items-center">
+          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-5 flex flex-col justify-between gap-3 xl:flex-row xl:items-center">
               <div>
-                <h2 className="text-xl font-bold text-slate-950">
+                <h2 className="text-lg font-bold text-slate-950">
                   Lista de historias
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
@@ -602,14 +604,14 @@ export default function StoriesPage() {
 
               <div className="flex flex-col gap-3 sm:flex-row">
                 <input
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 sm:w-72"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 sm:w-64"
                   placeholder="Buscar historia o folio..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
 
                 <select
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                 >
@@ -622,7 +624,7 @@ export default function StoriesPage() {
                 </select>
 
                 <select
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
                   value={priorityFilter}
                   onChange={(e) => setPriorityFilter(e.target.value)}
                 >
@@ -638,10 +640,10 @@ export default function StoriesPage() {
 
             {filteredStories.length === 0 ? (
               <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center">
-                <h3 className="text-xl font-bold text-slate-950">
+                <h3 className="text-lg font-bold text-slate-950">
                   No hay historias para mostrar
                 </h3>
-                <p className="mt-2 text-sm text-slate-500">
+                <p className="mt-1 text-xs text-slate-500">
                   Crea una nueva historia o ajusta los filtros de búsqueda.
                 </p>
 
@@ -654,85 +656,62 @@ export default function StoriesPage() {
                 </button>
               </div>
             ) : (
-              <div className="grid gap-5 xl:grid-cols-2">
+              <div className="grid gap-4 xl:grid-cols-2">
                 {filteredStories.map((story) => (
                   <article
                     key={story.id}
-                    className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                    className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-blue-100 hover:shadow-md"
                   >
-                    <div className="mb-5 flex items-start justify-between gap-4">
-                      <div>
-                        <div className="mb-2">
-                          <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-black uppercase tracking-wide text-blue-700">
-                            {story.folio ?? "Sin folio"}
-                          </span>
-                        </div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <span className="inline-flex max-w-full rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-blue-700">
+                          {story.folio ?? "Sin folio"}
+                        </span>
 
-                        <h3 className="text-xl font-bold text-slate-950">
+                        <h3 className="mt-2 truncate text-base font-black text-slate-950">
                           {story.title}
                         </h3>
 
-                        <p className="mt-2 text-sm text-slate-500">
+                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
                           {story.description || "Sin descripción"}
                         </p>
                       </div>
 
-                      <div className="flex flex-col items-end gap-2">
+                      <div className="flex shrink-0 flex-col items-end gap-1.5">
                         <PriorityBadge priority={story.priority} />
                         <StatusBadge status={story.status} />
                       </div>
                     </div>
 
-                    <div className="grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm">
-                      <div className="flex items-center justify-between gap-4">
-                        <span className="text-slate-500">Folio proyecto</span>
-                        <strong className="text-right text-slate-950">
-                          {story.project?.folio || "Sin folio"}
-                        </strong>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-4">
+                    <div className="mt-4 grid gap-2 rounded-2xl bg-slate-50 p-3 text-xs sm:grid-cols-3">
+                      <div className="min-w-0">
                         <span className="text-slate-500">Proyecto</span>
-                        <strong className="text-right text-slate-950">
+                        <strong className="mt-1 block truncate text-slate-950">
                           {story.project?.name || "Sin proyecto"}
                         </strong>
                       </div>
 
-                      <div className="flex items-center justify-between gap-4">
-                        <span className="text-slate-500">Asignado a</span>
-                        <strong className="text-right text-slate-950">
+                      <div className="min-w-0">
+                        <span className="text-slate-500">Asignado</span>
+                        <strong className="mt-1 block truncate text-slate-950">
                           {story.assignedTo?.name || "Sin asignar"}
                         </strong>
                       </div>
 
-                      <div className="flex items-center justify-between gap-4">
-                        <span className="text-slate-500">Inicio</span>
-                        <strong className="text-right text-slate-950">
-                          {formatDate(story.startDate)}
-                        </strong>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-4">
+                      <div className="min-w-0">
                         <span className="text-slate-500">Fin estimado</span>
-                        <strong className="text-right text-slate-950">
+                        <strong className="mt-1 block truncate text-slate-950">
                           {formatDate(story.estimatedEndDate)}
-                        </strong>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-4">
-                        <span className="text-slate-500">Fin real</span>
-                        <strong className="text-right text-slate-950">
-                          {formatDate(story.actualEndDate)}
                         </strong>
                       </div>
                     </div>
 
-                    <div className="mt-5 flex flex-col justify-end gap-3 sm:flex-row">
+                    <div className="mt-4 flex flex-wrap justify-end gap-2">
                       {isAdmin && (
                         <button
                           type="button"
                           onClick={() => startEditingStory(story)}
-                          className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 text-center text-sm font-bold text-amber-700 hover:bg-amber-100"
+                          className="inline-flex items-center justify-center rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-bold text-amber-700 hover:bg-amber-100"
                         >
                           Editar
                         </button>
@@ -740,23 +719,23 @@ export default function StoriesPage() {
 
                       <Link
                         href={`/projects/${story.projectId}`}
-                        className="rounded-2xl border border-slate-200 px-5 py-3 text-center text-sm font-bold text-slate-700 hover:bg-slate-50"
+                        className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-center text-xs font-bold text-slate-700 hover:bg-slate-50"
                       >
-                        Ver proyecto
+                        Proyecto
                       </Link>
 
                       <Link
                         href={`/stories/${story.id}`}
-                        className="rounded-2xl border border-blue-200 bg-blue-50 px-5 py-3 text-center text-sm font-bold text-blue-700 hover:bg-blue-100"
+                        className="inline-flex items-center justify-center rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-center text-xs font-bold text-blue-700 hover:bg-blue-100"
                       >
-                        Ver requerimientos
+                        Requerimientos
                       </Link>
 
                       {isAdmin && (
                         <button
                           type="button"
                           onClick={() => deleteStory(story.id)}
-                          className="rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-center text-sm font-bold text-red-700 hover:bg-red-100"
+                          className="inline-flex items-center justify-center rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-center text-xs font-bold text-red-700 hover:bg-red-100"
                         >
                           Eliminar
                         </button>
@@ -967,8 +946,8 @@ export default function StoriesPage() {
                   {loading
                     ? "Guardando..."
                     : editingStoryId
-                    ? "Guardar cambios"
-                    : "Crear historia"}
+                      ? "Guardar cambios"
+                      : "Crear historia"}
                 </button>
 
                 <button
