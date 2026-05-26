@@ -1,7 +1,14 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+type User = {
+  id: string;
+  name: string;
+  email?: string | null;
+  role: string;
+};
 
 type Story = {
   id: string;
@@ -22,27 +29,27 @@ type Props = {
 };
 
 const statusOptions = [
-  { value: "ANALISIS", label: "Analisis" },
-  { value: "DISENO", label: "diseño" },
+  { value: "ANALISIS", label: "Análisis" },
+  { value: "DISENO", label: "Diseño" },
   {
     value: "DESARROLLO_IMPLEMENTACION",
     label: "Desarrollo / implementación",
   },
   { value: "PRUEBAS", label: "Pruebas" },
-  { value: "TRANSICION", label: "transición" },
-  { value: "PUESTA_EN_MARCHA", label: "puesta en marcha" },
+  { value: "TRANSICION", label: "Transición" },
+  { value: "PUESTA_EN_MARCHA", label: "Puesta en marcha" },
 ];
 
 const columns = [
   {
     value: "ANALISIS",
-    title: "Analisis",
-    description: "Etapa de analisis",
+    title: "Análisis",
+    description: "Etapa de análisis",
     dot: "bg-slate-400",
   },
   {
     value: "DISENO",
-    title: "diseño",
+    title: "Diseño",
     description: "Etapa de diseño",
     dot: "bg-orange-400",
   },
@@ -60,13 +67,13 @@ const columns = [
   },
   {
     value: "TRANSICION",
-    title: "transición",
+    title: "Transición",
     description: "Etapa de transición",
     dot: "bg-amber-500",
   },
   {
     value: "PUESTA_EN_MARCHA",
-    title: "puesta en marcha",
+    title: "Puesta en marcha",
     description: "Etapa de puesta en marcha",
     dot: "bg-green-500",
   },
@@ -108,30 +115,125 @@ function PriorityBadge({ priority }: { priority?: string | null }) {
   );
 }
 
+async function getResponseError(res: Response) {
+  try {
+    const data = await res.json();
+    return (
+      data?.error ??
+      data?.message ??
+      `No se pudo actualizar el estado. Código ${res.status}.`
+    );
+  } catch {
+    return `No se pudo actualizar el estado. Código ${res.status}.`;
+  }
+}
+
 export default function BoardClient({ initialStories }: Props) {
   const [stories, setStories] = useState(initialStories);
+  const [users, setUsers] = useState<User[]>([]);
+  const [currentUserId, setCurrentUserId] = useState("");
+  const [savingStoryIds, setSavingStoryIds] = useState<string[]>([]);
+
+  const currentUser = users.find((user) => user.id === currentUserId);
+  const isAdmin = currentUser?.role === "ADMIN";
+
+  useEffect(() => {
+    async function loadUsers() {
+      try {
+        const res = await fetch("/api/users", { cache: "no-store" });
+
+        if (!res.ok) {
+          return;
+        }
+
+        const data = await res.json();
+
+        if (!Array.isArray(data)) {
+          return;
+        }
+
+        setUsers(data);
+
+        setCurrentUserId((selectedUserId) => {
+          if (selectedUserId) return selectedUserId;
+
+          const adminUser = data.find((user: User) => user.role === "ADMIN");
+          return adminUser?.id ?? data[0]?.id ?? "";
+        });
+      } catch (error) {
+        console.error("Error al cargar usuarios:", error);
+      }
+    }
+
+    loadUsers();
+  }, []);
 
   async function changeStatus(storyId: string, newStatus: string) {
-    const res = await fetch(`/api/stories/${storyId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ status: newStatus }),
-    });
-
-    if (!res.ok) {
-      alert("No se pudo actualizar el estado");
+    if (!currentUserId) {
+      alert("Selecciona el usuario actual antes de cambiar el estado.");
       return;
     }
 
-    const updatedStory = await res.json();
+    const previousStory = stories.find((story) => story.id === storyId);
+
+    if (!previousStory || previousStory.status === newStatus) {
+      return;
+    }
+
+    setSavingStoryIds((prev) => [...prev, storyId]);
 
     setStories((prev) =>
       prev.map((story) =>
-        story.id === updatedStory.id ? { ...story, ...updatedStory } : story
+        story.id === storyId ? { ...story, status: newStatus } : story
       )
     );
+
+    try {
+      const userQuery = `?userId=${encodeURIComponent(currentUserId)}`;
+
+      const res = await fetch(`/api/stories/${storyId}${userQuery}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!res.ok) {
+        const errorMessage = await getResponseError(res);
+
+        setStories((prev) =>
+          prev.map((story) =>
+            story.id === storyId
+              ? { ...story, status: previousStory.status }
+              : story
+          )
+        );
+
+        alert(errorMessage);
+        return;
+      }
+
+      const updatedStory = await res.json();
+
+      setStories((prev) =>
+        prev.map((story) =>
+          story.id === updatedStory.id ? { ...story, ...updatedStory } : story
+        )
+      );
+    } catch (error) {
+      console.error("Error al actualizar estado:", error);
+
+      setStories((prev) =>
+        prev.map((story) =>
+          story.id === storyId ? { ...story, status: previousStory.status } : story
+        )
+      );
+
+      alert("No se pudo actualizar el estado. Revisa la consola del servidor.");
+    } finally {
+      setSavingStoryIds((prev) => prev.filter((id) => id !== storyId));
+    }
   }
 
   function getStoriesByStatus(status: string) {
@@ -139,103 +241,152 @@ export default function BoardClient({ initialStories }: Props) {
   }
 
   return (
-    <div className="overflow-x-auto pb-2">
-      <div className="grid min-w-[1440px] grid-cols-6 gap-4">
-        {columns.map((column) => {
-          const columnStories = getStoriesByStatus(column.value);
+    <div>
+      <div className="mb-4 flex flex-col justify-between gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.25em] text-blue-600">
+            Usuario actual
+          </p>
+          <p className="mt-1 text-sm text-slate-500">
+            Se usa para validar permisos al cambiar estados.
+          </p>
+        </div>
 
-          return (
-            <section
-              key={column.value}
-              className="rounded-3xl border border-slate-200 bg-slate-50 p-4"
-            >
-              <div className="mb-4 flex items-start justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className={`h-3 w-3 rounded-full ${column.dot}`} />
-                    <h3 className="font-bold text-slate-950">
-                      {column.title}
-                    </h3>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <select
+            value={currentUserId}
+            onChange={(e) => setCurrentUserId(e.target.value)}
+            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
+          >
+            {users.length === 0 ? (
+              <option value="">Sin usuarios disponibles</option>
+            ) : (
+              users.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.name} - {user.role}
+                </option>
+              ))
+            )}
+          </select>
+
+          <span
+            className={`rounded-full border px-4 py-2 text-xs font-black ${
+              isAdmin
+                ? "border-green-200 bg-green-50 text-green-700"
+                : "border-slate-200 bg-slate-50 text-slate-600"
+            }`}
+          >
+            {isAdmin ? "ADMIN" : currentUser?.role ?? "Sin usuario"}
+          </span>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto pb-2">
+        <div className="grid min-w-[1440px] grid-cols-6 gap-4">
+          {columns.map((column) => {
+            const columnStories = getStoriesByStatus(column.value);
+
+            return (
+              <section
+                key={column.value}
+                className="rounded-3xl border border-slate-200 bg-slate-50 p-4"
+              >
+                <div className="mb-4 flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className={`h-3 w-3 rounded-full ${column.dot}`} />
+                      <h3 className="font-bold text-slate-950">
+                        {column.title}
+                      </h3>
+                    </div>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      {column.description}
+                    </p>
                   </div>
 
-                  <p className="mt-1 text-xs text-slate-500">
-                    {column.description}
-                  </p>
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-600 shadow-sm">
+                    {columnStories.length}
+                  </span>
                 </div>
 
-                <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-600 shadow-sm">
-                  {columnStories.length}
-                </span>
-              </div>
+                <div className="space-y-3">
+                  {columnStories.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-center text-sm text-slate-400">
+                      Sin historias
+                    </div>
+                  ) : (
+                    columnStories.map((story) => {
+                      const assignedName =
+                        story.assignedTo?.name ||
+                        story.owner?.name ||
+                        "Sin asignar";
+                      const isSaving = savingStoryIds.includes(story.id);
 
-              <div className="space-y-3">
-                {columnStories.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-center text-sm text-slate-400">
-                    Sin historias
-                  </div>
-                ) : (
-                  columnStories.map((story) => {
-                    const assignedName =
-                      story.assignedTo?.name ||
-                      story.owner?.name ||
-                      "Sin asignar";
-
-                    return (
-                      <article
-                        key={story.id}
-                        className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                      >
-                        <div className="mb-3">
-                          <h4 className="text-sm font-bold leading-5 text-slate-950">
-                            {story.title}
-                          </h4>
-
-                          <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-500">
-                            {story.description || "Sin descripción"}
-                          </p>
-                        </div>
-
-                        <div className="mb-4 flex flex-wrap gap-2">
-                          <PriorityBadge priority={story.priority} />
-                        </div>
-
-                        <div className="mb-4 rounded-2xl bg-slate-50 p-3">
-                          <p className="text-xs font-medium text-slate-500">
-                            Asignado a
-                          </p>
-                          <p className="mt-1 text-sm font-bold text-slate-950">
-                            {assignedName}
-                          </p>
-                        </div>
-
-                        <select
-                          value={story.status}
-                          onChange={(e) =>
-                            changeStatus(story.id, e.target.value)
-                          }
-                          className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      return (
+                        <article
+                          key={story.id}
+                          className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                         >
-                          {statusOptions.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
+                          <div className="mb-3">
+                            <h4 className="text-sm font-bold leading-5 text-slate-950">
+                              {story.title}
+                            </h4>
 
-                        <Link
-                          href={`/stories/${story.id}`}
-                          className="mt-3 inline-flex w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700"
-                        >
-                          Ver actividades
-                        </Link>
-                      </article>
-                    );
-                  })
-                )}
-              </div>
-            </section>
-          );
-        })}
+                            <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-500">
+                              {story.description || "Sin descripción"}
+                            </p>
+                          </div>
+
+                          <div className="mb-4 flex flex-wrap gap-2">
+                            <PriorityBadge priority={story.priority} />
+                          </div>
+
+                          <div className="mb-4 rounded-2xl bg-slate-50 p-3">
+                            <p className="text-xs font-medium text-slate-500">
+                              Asignado a
+                            </p>
+                            <p className="mt-1 text-sm font-bold text-slate-950">
+                              {assignedName}
+                            </p>
+                          </div>
+
+                          <select
+                            value={story.status}
+                            disabled={isSaving || !currentUserId}
+                            onChange={(e) =>
+                              changeStatus(story.id, e.target.value)
+                            }
+                            className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {statusOptions.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+
+                          {isSaving && (
+                            <p className="mt-2 text-center text-xs font-bold text-blue-600">
+                              Guardando estado...
+                            </p>
+                          )}
+
+                          <Link
+                            href={`/stories/${story.id}`}
+                            className="mt-3 inline-flex w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700"
+                          >
+                            Ver actividades
+                          </Link>
+                        </article>
+                      );
+                    })
+                  )}
+                </div>
+              </section>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
