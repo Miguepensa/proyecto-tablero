@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import type { ReactNode } from "react";
 
 type User = {
@@ -78,16 +79,63 @@ type StatusCount = {
   total: number;
 };
 
-const API_BASE_URL =
+const FALLBACK_API_BASE_URL =
   process.env.NEXT_PUBLIC_APP_URL ||
   process.env.APP_URL ||
   (process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
     : "http://localhost:3000");
 
-async function fetchCollection<T>(path: string, label: string): Promise<T[]> {
+async function getApiBaseUrl() {
   try {
-    const res = await fetch(`${API_BASE_URL}${path}`, {
+    const headersList = await headers();
+    const host =
+      headersList.get("x-forwarded-host") ||
+      headersList.get("host");
+
+    if (!host) {
+      return FALLBACK_API_BASE_URL;
+    }
+
+    const protocol =
+      headersList.get("x-forwarded-proto") ||
+      (host.includes("localhost") || host.includes("127.0.0.1")
+        ? "http"
+        : "https");
+
+    return `${protocol}://${host}`;
+  } catch (error) {
+    console.error("No se pudo obtener el host actual:", error);
+    return FALLBACK_API_BASE_URL;
+  }
+}
+
+function collectionFromResponse<T>(data: unknown, keys: string[]): T[] {
+  if (Array.isArray(data)) {
+    return data as T[];
+  }
+
+  if (data && typeof data === "object") {
+    const record = data as Record<string, unknown>;
+
+    for (const key of keys) {
+      if (Array.isArray(record[key])) {
+        return record[key] as T[];
+      }
+    }
+  }
+
+  return [];
+}
+
+async function fetchCollection<T>(
+  baseUrl: string,
+  path: string,
+  label: string,
+  keys: string[]
+): Promise<T[]> {
+  try {
+    const res = await fetch(`${baseUrl}${path}`, {
       cache: "no-store",
     });
 
@@ -97,7 +145,7 @@ async function fetchCollection<T>(path: string, label: string): Promise<T[]> {
     }
 
     const data = await res.json();
-    return Array.isArray(data) ? data : [];
+    return collectionFromResponse<T>(data, keys);
   } catch (error) {
     console.error(`Error al cargar ${label}:`, error);
     return [];
@@ -488,11 +536,13 @@ function RecentRequisitionRows({ requisitions }: { requisitions: Requisition[] }
 }
 
 export default async function DashboardPage() {
+  const apiBaseUrl = await getApiBaseUrl();
+
   const [users, projects, stories, requisitions] = await Promise.all([
-    fetchCollection<User>("/api/users", "usuarios"),
-    fetchCollection<Project>("/api/projects", "proyectos"),
-    fetchCollection<Story>("/api/stories", "historias"),
-    fetchCollection<Requisition>("/api/tasks", "requisiciones"),
+    fetchCollection<User>(apiBaseUrl, "/api/users", "usuarios", ["users"]),
+    fetchCollection<Project>(apiBaseUrl, "/api/projects", "proyectos", ["projects"]),
+    fetchCollection<Story>(apiBaseUrl, "/api/stories", "historias", ["stories", "userStories"]),
+    fetchCollection<Requisition>(apiBaseUrl, "/api/tasks", "requisiciones", ["tasks", "requisitions", "requirements"]),
   ]);
 
   const totalUsers = users.length;
