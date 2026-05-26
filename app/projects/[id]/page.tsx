@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import BoardClient from "./BoardClient";
+import ProjectStoryCreateButton from "../ProjectStoryCreateButton";
 
 type Project = {
   id: string;
@@ -13,6 +14,13 @@ type Project = {
   owner?: {
     name: string;
   };
+};
+
+type User = {
+  id: string;
+  name: string;
+  email: string;
+  role?: "ADMIN" | "LIDER" | "COLABORADOR";
 };
 
 type Story = {
@@ -72,6 +80,10 @@ async function getProjects(): Promise<Project[]> {
 
 async function getStories(): Promise<Story[]> {
   return fetchJson<Story[]>("/api/stories", []);
+}
+
+async function getUsers(): Promise<User[]> {
+  return fetchJson<User[]>("/api/users", []);
 }
 
 function formatDate(date?: string | null) {
@@ -222,6 +234,13 @@ function Sidebar() {
 
         <Link
           className="block rounded-2xl px-4 py-3 text-slate-300 hover:bg-slate-900 hover:text-white"
+          href="/requirements"
+        >
+          Requerimientos
+        </Link>
+
+        <Link
+          className="block rounded-2xl px-4 py-3 text-slate-300 hover:bg-slate-900 hover:text-white"
           href="/calendar"
         >
           Calendario
@@ -321,7 +340,11 @@ export default async function ProjectBoardPage({
 }) {
   const { id } = await params;
 
-  const [projects, stories] = await Promise.all([getProjects(), getStories()]);
+  const [projects, stories, users] = await Promise.all([
+    getProjects(),
+    getStories(),
+    getUsers(),
+  ]);
 
   const project: Project | undefined = projects.find(
     (item: Project) => item.id === id
@@ -413,12 +436,10 @@ export default async function ProjectBoardPage({
                   Editar proyecto
                 </Link>
 
-                <Link
-                  href="/stories"
-                  className="rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-bold text-white shadow-sm hover:bg-blue-700"
-                >
-                  + Nueva historia
-                </Link>
+                <ProjectStoryCreateButton
+                  project={{ id: project.id, name: project.name }}
+                  users={users}
+                />
               </div>
             </div>
 
@@ -512,12 +533,11 @@ export default async function ProjectBoardPage({
                   este proyecto.
                 </p>
 
-                <Link
-                  href="/stories"
+                <ProjectStoryCreateButton
+                  project={{ id: project.id, name: project.name }}
+                  users={users}
                   className="mt-6 inline-flex rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-700"
-                >
-                  + Nueva historia
-                </Link>
+                />
               </div>
             ) : (
               <div className="grid gap-4 xl:grid-cols-2">
@@ -570,7 +590,7 @@ export default async function ProjectBoardPage({
                         href={`/stories/${story.id}`}
                         className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700"
                       >
-                        Ver actividades
+                        Ver requerimientos
                       </Link>
 
                       <Link

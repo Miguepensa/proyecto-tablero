@@ -303,6 +303,9 @@ function Sidebar() {
         <Link className="block rounded-2xl px-4 py-2.5 text-slate-300 hover:bg-slate-900 hover:text-white" href="/stories">
           Historias
         </Link>
+        <Link className="block rounded-2xl px-4 py-2.5 text-slate-300 hover:bg-slate-900 hover:text-white" href="/requirements">
+          Requerimientos
+        </Link>
         <Link className="block rounded-2xl px-4 py-2.5 text-slate-300 hover:bg-slate-900 hover:text-white" href="/calendar">
           Calendario
         </Link>
@@ -590,7 +593,7 @@ export default async function DashboardPage() {
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-600">Resumen general</p>
                 <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 md:text-4xl">Dashboard PMO</h1>
                 <p className="mt-2 max-w-3xl text-sm text-slate-500">
-                  Tableros compactos con información de usuarios, proyectos, historias de usuario y requisiciones.
+                  Tableros compactos con información de usuarios, proyectos, historias de usuario y requerimientos.
                 </p>
               </div>
 
@@ -678,7 +681,7 @@ export default async function DashboardPage() {
               </div>
             </BoardPanel>
 
-            <BoardPanel title="Requisiciones" subtitle="Resumen tomado de actividades/tareas registradas." href="/stories" actionLabel="Ver origen">
+            <BoardPanel title="Requerimientos" subtitle="Resumen tomado de actividades/tareas registradas." href="/requirements" actionLabel="Ver requerimientos">
               <div className="grid grid-cols-2 gap-3">
                 <MiniStat label="Total" value={totalRequisitions} />
                 <MiniStat label="Abiertas" value={activeRequisitions} />

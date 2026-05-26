@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import ProjectStoryCreateButton from "./ProjectStoryCreateButton";
 
 type User = {
   id: string;
   name: string;
   email: string;
+  role?: "ADMIN" | "LIDER" | "COLABORADOR";
 };
 
 type Project = {
@@ -140,6 +142,13 @@ function Sidebar() {
           href="/stories"
         >
           Historias
+        </Link>
+
+        <Link
+          className="block rounded-2xl px-4 py-3 text-slate-300 hover:bg-slate-900 hover:text-white"
+          href="/requirements"
+        >
+          Requerimientos
         </Link>
 
         <Link
@@ -526,6 +535,16 @@ export default function ProjectsPage() {
                       </select>
 
                       <div className="flex flex-wrap gap-2">
+                        <ProjectStoryCreateButton
+                          project={{
+                            id: project.id,
+                            name: project.name,
+                            folio: project.folio,
+                          }}
+                          users={users}
+                          className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-center text-xs font-bold text-blue-700 hover:bg-blue-100"
+                        />
+
                         <Link
                           href={`/projects/${project.id}`}
                           className="rounded-xl border border-slate-200 px-3 py-2 text-center text-xs font-bold text-slate-700 hover:bg-slate-50"

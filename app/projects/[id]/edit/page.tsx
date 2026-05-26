@@ -103,6 +103,13 @@ function Sidebar() {
 
         <Link
           className="block rounded-2xl px-4 py-3 text-slate-300 hover:bg-slate-900 hover:text-white"
+          href="/requirements"
+        >
+          Requerimientos
+        </Link>
+
+        <Link
+          className="block rounded-2xl px-4 py-3 text-slate-300 hover:bg-slate-900 hover:text-white"
           href="/calendar"
         >
           Calendario

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import RequirementCreateButton from "./RequirementCreateButton";
 
 type User = {
   id: string;
@@ -215,6 +216,13 @@ function Sidebar() {
           href="/stories"
         >
           Historias
+        </Link>
+
+        <Link
+          className="block rounded-2xl px-4 py-3 text-slate-300 hover:bg-slate-900 hover:text-white"
+          href="/requirements"
+        >
+          Requerimientos
         </Link>
 
         <Link
@@ -723,6 +731,16 @@ export default function StoriesPage() {
                       >
                         Proyecto
                       </Link>
+
+                      <RequirementCreateButton
+                        story={{
+                          id: story.id,
+                          title: story.title,
+                          folio: story.folio,
+                        }}
+                        users={users}
+                        className="inline-flex items-center justify-center rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-center text-xs font-bold text-green-700 hover:bg-green-100"
+                      />
 
                       <Link
                         href={`/stories/${story.id}`}

@@ -317,7 +317,7 @@ export default function BoardClient({ initialStories }: Props) {
                             href={`/stories/${story.id}`}
                             className="mt-2 inline-flex h-8 w-full items-center justify-center rounded-xl bg-blue-600 px-3 text-[11px] font-bold text-white shadow-sm transition hover:bg-blue-700"
                           >
-                            Ver actividades
+                            Ver requerimientos
                           </Link>
                         </article>
                       );
