@@ -11,6 +11,7 @@ type User = {
 
 type Story = {
   id: string;
+  folio?: string | null;
   title: string;
   description?: string | null;
   status: string;
@@ -21,11 +22,13 @@ type Story = {
   project?: {
     id: string;
     name: string;
+    folio?: string | null;
   } | null;
   assignedTo?: User | null;
   createdBy?: User | null;
   tasks?: {
     id: string;
+    folio?: string | null;
     title: string;
     description?: string | null;
     status: string;
@@ -373,7 +376,13 @@ export default async function StoryDetailPage({
                   ← Volver a historias
                 </Link>
 
-                <div className="mt-5 flex flex-wrap items-center gap-3">
+                <div className="mt-5">
+                  <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-black uppercase tracking-wide text-blue-700">
+                    {story.folio ?? "Sin folio"}
+                  </span>
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-3">
                   <h1 className="text-3xl font-bold tracking-tight text-slate-950 md:text-4xl">
                     {story.title}
                   </h1>
@@ -397,10 +406,19 @@ export default async function StoryDetailPage({
               )}
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <SummaryBox
+                label="Folio de historia"
+                value={story.folio || "Sin folio"}
+              />
+
               <SummaryBox
                 label="Proyecto"
-                value={story.project?.name || "Sin proyecto"}
+                value={
+                  story.project?.folio
+                    ? `${story.project.folio} - ${story.project.name}`
+                    : story.project?.name || "Sin proyecto"
+                }
               />
 
               <SummaryBox

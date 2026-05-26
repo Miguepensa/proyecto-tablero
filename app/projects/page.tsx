@@ -11,6 +11,9 @@ type User = {
 
 type Project = {
   id: string;
+  folioPrefix?: string | null;
+  folioNumber?: number | null;
+  folio?: string | null;
   name: string;
   description: string;
   status: string;
@@ -28,6 +31,10 @@ const statusOptions = [
   { value: "TERMINADO", label: "Completado" },
   { value: "BLOQUEADO", label: "Retrasado" },
 ];
+
+function normalizeFolioPrefixInput(value: string) {
+  return value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 3);
+}
 
 function getStatusLabel(status: string) {
   return statusOptions.find((option) => option.value === status)?.label ?? status;
@@ -159,6 +166,7 @@ export default function ProjectsPage() {
   const [users, setUsers] = useState<User[]>([]);
 
   const [name, setName] = useState("");
+  const [folioPrefix, setFolioPrefix] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("PENDIENTE");
   const [ownerId, setOwnerId] = useState("");
@@ -240,6 +248,8 @@ export default function ProjectsPage() {
 
       const matchesSearch =
         project.name.toLowerCase().includes(text) ||
+        (project.folio ?? "").toLowerCase().includes(text) ||
+        (project.folioPrefix ?? "").toLowerCase().includes(text) ||
         (project.description ?? "").toLowerCase().includes(text) ||
         (project.owner?.name ?? "").toLowerCase().includes(text);
 
@@ -263,6 +273,7 @@ export default function ProjectsPage() {
 
   function resetForm() {
     setName("");
+    setFolioPrefix("");
     setDescription("");
     setStatus("PENDIENTE");
     setStartDate("");
@@ -272,6 +283,12 @@ export default function ProjectsPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (folioPrefix.length !== 3) {
+      alert("La clave de folio debe tener exactamente 3 caracteres.");
+      return;
+    }
+
     setLoading(true);
 
     const res = await fetch("/api/projects", {
@@ -281,6 +298,7 @@ export default function ProjectsPage() {
       },
       body: JSON.stringify({
         name,
+        folioPrefix,
         description,
         status,
         ownerId,
@@ -295,7 +313,8 @@ export default function ProjectsPage() {
       setShowProjectModal(false);
       await loadProjects();
     } else {
-      alert("No se pudo crear el proyecto");
+      const data = await res.json().catch(() => null);
+      alert(data?.error ?? "No se pudo crear el proyecto");
     }
 
     setLoading(false);
@@ -369,7 +388,7 @@ export default function ProjectsPage() {
               <div className="flex flex-col gap-3 sm:flex-row">
                 <input
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 sm:w-72"
-                  placeholder="Buscar proyecto..."
+                  placeholder="Buscar proyecto o folio..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -415,6 +434,12 @@ export default function ProjectsPage() {
                   >
                     <div className="mb-5 flex items-start justify-between gap-4">
                       <div>
+                        <div className="mb-2">
+                          <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-black uppercase tracking-wide text-blue-700">
+                            {project.folio ?? "Sin folio"}
+                          </span>
+                        </div>
+
                         <Link
                           href={`/projects/${project.id}`}
                           className="text-xl font-bold text-slate-950 hover:text-blue-600"
@@ -522,18 +547,41 @@ export default function ProjectsPage() {
             </div>
 
             <div className="grid gap-5">
-              <label>
-                <span className="mb-2 block text-sm font-bold text-slate-700">
-                  Nombre del proyecto
-                </span>
-                <input
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </label>
+              <div className="grid gap-5 md:grid-cols-[1fr_180px]">
+                <label>
+                  <span className="mb-2 block text-sm font-bold text-slate-700">
+                    Nombre del proyecto
+                  </span>
+                  <input
+                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
+                </label>
+
+                <label>
+                  <span className="mb-2 block text-sm font-bold text-slate-700">
+                    Clave de folio
+                  </span>
+                  <input
+                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-center font-black uppercase tracking-[0.2em] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    type="text"
+                    value={folioPrefix}
+                    onChange={(e) =>
+                      setFolioPrefix(normalizeFolioPrefixInput(e.target.value))
+                    }
+                    minLength={3}
+                    maxLength={3}
+                    placeholder="SKU"
+                    required
+                  />
+                  <p className="mt-2 text-xs text-slate-500">
+                    Usa 3 letras o números. Ejemplo: SKU, CRM, INV.
+                  </p>
+                </label>
+              </div>
 
               <label>
                 <span className="mb-2 block text-sm font-bold text-slate-700">

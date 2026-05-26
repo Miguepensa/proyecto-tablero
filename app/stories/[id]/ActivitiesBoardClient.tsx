@@ -21,6 +21,7 @@ type ActivityProgress = {
 
 type StoryActivity = {
   id: string;
+  folio?: string | null;
   title: string;
   description?: string | null;
   status: string;
@@ -36,6 +37,7 @@ type StoryActivity = {
 
 type Story = {
   id: string;
+  folio?: string | null;
   title: string;
   tasks?: StoryActivity[];
 };
@@ -569,6 +571,10 @@ export default function ActivitiesBoardClient({ initialStory, users }: Props) {
                         ) : (
                           <>
                             <div className="mb-4">
+                              <span className="mb-2 inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-blue-700">
+                                {activity.folio ?? "Sin folio"}
+                              </span>
+
                               <h4 className="text-sm font-bold leading-5 text-slate-950">
                                 {activity.title}
                               </h4>

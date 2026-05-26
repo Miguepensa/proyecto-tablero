@@ -13,10 +13,12 @@ type User = {
 type Project = {
   id: string;
   name: string;
+  folio?: string | null;
 };
 
 type Story = {
   id: string;
+  folio?: string | null;
   title: string;
   description: string;
   priority: string;
@@ -28,6 +30,7 @@ type Story = {
   actualEndDate?: string | null;
   project?: {
     name: string;
+    folio?: string | null;
   };
   assignedTo?: {
     name: string;
@@ -375,7 +378,9 @@ export default function StoriesPage() {
 
       const matchesSearch =
         story.title.toLowerCase().includes(text) ||
+        (story.folio ?? "").toLowerCase().includes(text) ||
         (story.description ?? "").toLowerCase().includes(text) ||
+        (story.project?.folio ?? "").toLowerCase().includes(text) ||
         (story.project?.name ?? "").toLowerCase().includes(text) ||
         (story.assignedTo?.name ?? "").toLowerCase().includes(text);
 
@@ -598,7 +603,7 @@ export default function StoriesPage() {
               <div className="flex flex-col gap-3 sm:flex-row">
                 <input
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 sm:w-72"
-                  placeholder="Buscar historia..."
+                  placeholder="Buscar historia o folio..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -657,6 +662,12 @@ export default function StoriesPage() {
                   >
                     <div className="mb-5 flex items-start justify-between gap-4">
                       <div>
+                        <div className="mb-2">
+                          <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-black uppercase tracking-wide text-blue-700">
+                            {story.folio ?? "Sin folio"}
+                          </span>
+                        </div>
+
                         <h3 className="text-xl font-bold text-slate-950">
                           {story.title}
                         </h3>
@@ -673,6 +684,13 @@ export default function StoriesPage() {
                     </div>
 
                     <div className="grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm">
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-slate-500">Folio proyecto</span>
+                        <strong className="text-right text-slate-950">
+                          {story.project?.folio || "Sin folio"}
+                        </strong>
+                      </div>
+
                       <div className="flex items-center justify-between gap-4">
                         <span className="text-slate-500">Proyecto</span>
                         <strong className="text-right text-slate-950">
@@ -875,6 +893,7 @@ export default function StoriesPage() {
                     <option value="">Seleccionar proyecto</option>
                     {projects.map((project) => (
                       <option key={project.id} value={project.id}>
+                        {project.folio ? `${project.folio} - ` : ""}
                         {project.name}
                       </option>
                     ))}

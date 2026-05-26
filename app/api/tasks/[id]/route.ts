@@ -30,7 +30,7 @@ export async function GET(
 
   if (!task) {
     return NextResponse.json(
-      { error: "Actividad no encontrada" },
+      { error: "Requerimiento no encontrado" },
       { status: 404 }
     );
   }
@@ -51,7 +51,7 @@ export async function PATCH(
 
   if (!existingTask) {
     return NextResponse.json(
-      { error: "Actividad no encontrada" },
+      { error: "Requerimiento no encontrado" },
       { status: 404 }
     );
   }
@@ -84,7 +84,7 @@ export async function PATCH(
           ? body.actualEndDate
             ? new Date(body.actualEndDate)
             : null
-          : body.status === "TERMINADO"
+          : body.status === "PUESTA_EN_MARCHA"
             ? new Date()
             : existingTask.actualEndDate,
     },
@@ -109,6 +109,8 @@ export async function PATCH(
       entityId: updatedTask.id,
       action: "UPDATED",
       oldValues: {
+        folioNumber: existingTask.folioNumber,
+        folio: existingTask.folio,
         title: existingTask.title,
         description: existingTask.description,
         status: existingTask.status,
@@ -119,6 +121,8 @@ export async function PATCH(
         actualEndDate: existingTask.actualEndDate,
       },
       newValues: {
+        folioNumber: updatedTask.folioNumber,
+        folio: updatedTask.folio,
         title: updatedTask.title,
         description: updatedTask.description,
         status: updatedTask.status,
@@ -155,7 +159,7 @@ export async function DELETE(
 
   if (!currentUser || currentUser.role !== "ADMIN") {
     return NextResponse.json(
-      { error: "Solo el administrador puede eliminar actividades" },
+      { error: "Solo el administrador puede eliminar requerimientos" },
       { status: 403 }
     );
   }
@@ -166,7 +170,7 @@ export async function DELETE(
 
   if (!existingTask) {
     return NextResponse.json(
-      { error: "Actividad no encontrada" },
+      { error: "Requerimiento no encontrado" },
       { status: 404 }
     );
   }
@@ -179,6 +183,8 @@ export async function DELETE(
       action: "DELETED",
       oldValues: {
         id: existingTask.id,
+        folioNumber: existingTask.folioNumber,
+        folio: existingTask.folio,
         title: existingTask.title,
         description: existingTask.description,
         status: existingTask.status,
@@ -200,6 +206,6 @@ export async function DELETE(
 
   return NextResponse.json({
     ok: true,
-    message: "Actividad eliminada correctamente",
+    message: "Requerimiento eliminado correctamente",
   });
 }

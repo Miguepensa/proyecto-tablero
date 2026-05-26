@@ -127,6 +127,9 @@ export async function PATCH(
             : "UPDATED",
         oldValues: {
           id: existingProject.id,
+          folioPrefix: existingProject.folioPrefix,
+          folioNumber: existingProject.folioNumber,
+          folio: existingProject.folio,
           name: existingProject.name,
           description: existingProject.description,
           status: existingProject.status,
@@ -137,6 +140,9 @@ export async function PATCH(
         },
         newValues: {
           id: updatedProject.id,
+          folioPrefix: updatedProject.folioPrefix,
+          folioNumber: updatedProject.folioNumber,
+          folio: updatedProject.folio,
           name: updatedProject.name,
           description: updatedProject.description,
           status: updatedProject.status,
@@ -188,6 +194,9 @@ export async function DELETE(
         action: "DELETED",
         oldValues: {
           id: existingProject.id,
+          folioPrefix: existingProject.folioPrefix,
+          folioNumber: existingProject.folioNumber,
+          folio: existingProject.folio,
           name: existingProject.name,
           description: existingProject.description,
           status: existingProject.status,

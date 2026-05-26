@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { buildRequirementFolio } from "@/lib/folios";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -67,12 +68,36 @@ export async function POST(
     );
   }
 
+  if (!story.folio) {
+    return NextResponse.json(
+      {
+        error:
+          "Esta historia todavía no tiene folio. Ejecuta el script de folios para registros existentes.",
+      },
+      { status: 400 }
+    );
+  }
+
+  const latestTask = await prisma.storyTask.findFirst({
+    where: {
+      userStoryId: id,
+    },
+    orderBy: {
+      folioNumber: "desc",
+    },
+  });
+
+  const folioNumber = (latestTask?.folioNumber ?? 0) + 1;
+  const folio = buildRequirementFolio(story.folio, folioNumber);
+
   const task = await prisma.storyTask.create({
     data: {
+      folioNumber,
+      folio,
       userStoryId: id,
       title: body.title,
       description: body.description || null,
-      status: body.status || "PENDIENTE",
+      status: body.status || "ANALISIS",
       priority: body.priority || "MEDIA",
       assignedToId: body.assignedToId || null,
       createdById: body.createdById,
@@ -104,6 +129,8 @@ export async function POST(
       action: "CREATED",
       oldValues: {},
       newValues: {
+        folioNumber: task.folioNumber,
+        folio: task.folio,
         title: task.title,
         description: task.description,
         status: task.status,

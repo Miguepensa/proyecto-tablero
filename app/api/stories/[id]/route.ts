@@ -1,5 +1,37 @@
 import { prisma } from "@/lib/prisma";
+import { buildRequirementFolio, buildStoryFolio } from "@/lib/folios";
 import { NextResponse } from "next/server";
+
+async function rebuildTaskFoliosForStory(storyId: string, storyFolio: string) {
+  const tasks = await prisma.storyTask.findMany({
+    where: {
+      userStoryId: storyId,
+    },
+    orderBy: [
+      {
+        folioNumber: "asc",
+      },
+      {
+        createdAt: "asc",
+      },
+    ],
+  });
+
+  for (let index = 0; index < tasks.length; index += 1) {
+    const task = tasks[index];
+    const folioNumber = task.folioNumber ?? index + 1;
+
+    await prisma.storyTask.update({
+      where: {
+        id: task.id,
+      },
+      data: {
+        folioNumber,
+        folio: buildRequirementFolio(storyFolio, folioNumber),
+      },
+    });
+  }
+}
 
 export async function GET(
   req: Request,
@@ -73,6 +105,9 @@ export async function PATCH(
 
   const existingStory = await prisma.userStory.findUnique({
     where: { id },
+    include: {
+      project: true,
+    },
   });
 
   if (!existingStory) {
@@ -82,14 +117,64 @@ export async function PATCH(
     );
   }
 
+  const nextProjectId = body.projectId || existingStory.projectId;
+  const isMovingProject = nextProjectId !== existingStory.projectId;
+  let nextFolio = existingStory.folio;
+  let nextFolioNumber = existingStory.folioNumber;
+
+  if (!nextFolio || !nextFolioNumber || isMovingProject) {
+    const targetProject = await prisma.project.findUnique({
+      where: {
+        id: nextProjectId,
+      },
+    });
+
+    if (!targetProject) {
+      return NextResponse.json(
+        { error: "Proyecto no encontrado" },
+        { status: 404 }
+      );
+    }
+
+    if (!targetProject.folio) {
+      return NextResponse.json(
+        {
+          error:
+            "El proyecto seleccionado todavía no tiene folio. Ejecuta el script de folios para registros existentes.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const latestStory = await prisma.userStory.findFirst({
+      where: {
+        projectId: nextProjectId,
+        folioNumber: {
+          not: null,
+        },
+        NOT: {
+          id,
+        },
+      },
+      orderBy: {
+        folioNumber: "desc",
+      },
+    });
+
+    nextFolioNumber = (latestStory?.folioNumber ?? 0) + 1;
+    nextFolio = buildStoryFolio(targetProject.folio, nextFolioNumber);
+  }
+
   const updatedStory = await prisma.userStory.update({
     where: { id },
     data: {
+      folioNumber: nextFolioNumber,
+      folio: nextFolio,
       title: body.title,
       description: body.description,
       priority: body.priority,
       status: body.status,
-      projectId: body.projectId,
+      projectId: nextProjectId,
       assignedToId: body.assignedToId || null,
       startDate: body.startDate ? new Date(body.startDate) : null,
       estimatedEndDate: body.estimatedEndDate
@@ -103,6 +188,10 @@ export async function PATCH(
       createdBy: true,
     },
   });
+
+  if (nextFolio) {
+    await rebuildTaskFoliosForStory(updatedStory.id, nextFolio);
+  }
 
   return NextResponse.json(updatedStory);
 }
