@@ -100,7 +100,7 @@ function formatDate(date?: string | null) {
 function StatusBadge({ status }: { status: string }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold ${getStatusClasses(
+      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${getStatusClasses(
         status
       )}`}
     >
@@ -406,10 +406,10 @@ export default function ProjectsPage() {
             />
           </div>
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="mb-6 flex flex-col justify-between gap-4 xl:flex-row xl:items-center">
+          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-5 flex flex-col justify-between gap-3 xl:flex-row xl:items-center">
               <div>
-                <h2 className="text-xl font-bold text-slate-950">
+                <h2 className="text-lg font-bold text-slate-950">
                   Lista de proyectos
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
@@ -417,16 +417,16 @@ export default function ProjectsPage() {
                 </p>
               </div>
 
-              <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="flex flex-wrap gap-2">
                 <input
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 sm:w-72"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 sm:w-64"
                   placeholder="Buscar proyecto o folio..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
 
                 <select
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                 >
@@ -458,28 +458,28 @@ export default function ProjectsPage() {
                 </button>
               </div>
             ) : (
-              <div className="grid gap-5 xl:grid-cols-2">
+              <div className="grid gap-4 xl:grid-cols-2">
                 {filteredProjects.map((project) => (
                   <article
                     key={project.id}
-                    className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                    className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                   >
-                    <div className="mb-5 flex items-start justify-between gap-4">
+                    <div className="mb-4 flex items-start justify-between gap-3">
                       <div>
                         <div className="mb-2">
-                          <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-black uppercase tracking-wide text-blue-700">
+                          <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wide text-blue-700">
                             {project.folio ?? "Sin folio"}
                           </span>
                         </div>
 
                         <Link
                           href={`/projects/${project.id}`}
-                          className="text-xl font-bold text-slate-950 hover:text-blue-600"
+                          className="text-lg font-bold text-slate-950 hover:text-blue-600"
                         >
                           {project.name}
                         </Link>
 
-                        <p className="mt-2 line-clamp-2 text-sm text-slate-500">
+                        <p className="mt-1 line-clamp-2 text-xs text-slate-500">
                           {project.description || "Sin descripción"}
                         </p>
                       </div>
@@ -487,7 +487,7 @@ export default function ProjectsPage() {
                       <StatusBadge status={project.status} />
                     </div>
 
-                    <div className="grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm">
+                    <div className="grid gap-2 rounded-2xl bg-slate-50 p-3 text-xs">
                       <div className="flex items-center justify-between gap-4">
                         <span className="text-slate-500">Responsable</span>
                         <strong className="text-right text-slate-950">
@@ -510,13 +510,13 @@ export default function ProjectsPage() {
                       </div>
                     </div>
 
-                    <div className="mt-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                    <div className="mt-4 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
                       <select
                         value={normalizeProjectStatus(project.status)}
                         onChange={(e) =>
                           changeProjectStatus(project.id, e.target.value)
                         }
-                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                       >
                         {statusOptions.map((option) => (
                           <option key={option.value} value={option.value}>
@@ -525,10 +525,10 @@ export default function ProjectsPage() {
                         ))}
                       </select>
 
-                      <div className="flex flex-col gap-3 sm:flex-row">
+                      <div className="flex flex-wrap gap-2">
                         <Link
                           href={`/projects/${project.id}`}
-                          className="rounded-2xl border border-slate-200 px-5 py-3 text-center text-sm font-bold text-slate-700 hover:bg-slate-50"
+                          className="rounded-xl border border-slate-200 px-3 py-2 text-center text-xs font-bold text-slate-700 hover:bg-slate-50"
                         >
                           Ver detalle
                         </Link>
@@ -536,7 +536,7 @@ export default function ProjectsPage() {
                         <button
                           type="button"
                           onClick={() => deleteProject(project.id)}
-                          className="rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-center text-sm font-bold text-red-700 hover:bg-red-100"
+                          className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-center text-xs font-bold text-red-700 hover:bg-red-100"
                         >
                           Eliminar
                         </button>
