@@ -18,14 +18,23 @@ enum ProjectStatus {
   EN_PROGRESO
   BLOQUEADO
   TERMINADO
+  CANCELADO
+  ANALISIS
+  DISENO
+  DESARROLLO_IMPLEMENTACION
+  PRUEBAS
+  TRANSICION
+  PUESTA_EN_MARCHA
 }
 
 enum StoryStatus {
   BACKLOG
   PENDIENTE
   EN_PROGRESO
+  BLOQUEADO
   REVISION
   TERMINADO
+  CANCELADO
   ANALISIS
   DISENO
   DESARROLLO_IMPLEMENTACION
@@ -83,7 +92,7 @@ model Project {
   folio            String?       @unique
   name             String
   description      String?
-  status           ProjectStatus @default(PENDIENTE)
+  status           ProjectStatus @default(ANALISIS)
   ownerId          String
   startDate        DateTime?
   estimatedEndDate DateTime?

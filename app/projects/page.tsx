@@ -26,31 +26,62 @@ type Project = {
 };
 
 const statusOptions = [
-  { value: "PENDIENTE", label: "Planeado" },
-  { value: "EN_PROGRESO", label: "En progreso" },
-  { value: "TERMINADO", label: "Completado" },
-  { value: "BLOQUEADO", label: "Retrasado" },
+  { value: "ANALISIS", label: "Análisis" },
+  { value: "DISENO", label: "Diseño" },
+  {
+    value: "DESARROLLO_IMPLEMENTACION",
+    label: "Desarrollo / implementación",
+  },
+  { value: "PRUEBAS", label: "Pruebas" },
+  { value: "TRANSICION", label: "Transición" },
+  { value: "PUESTA_EN_MARCHA", label: "Puesta en marcha" },
 ];
+
+function normalizeProjectStatus(status?: string | null) {
+  if (!status) return "ANALISIS";
+
+  if (status === "PENDIENTE") return "ANALISIS";
+  if (status === "EN_PROGRESO") return "DESARROLLO_IMPLEMENTACION";
+  if (status === "BLOQUEADO") return "TRANSICION";
+  if (status === "CANCELADO") return "TRANSICION";
+  if (status === "TERMINADO") return "PUESTA_EN_MARCHA";
+
+  return status;
+}
 
 function normalizeFolioPrefixInput(value: string) {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 3);
 }
 
 function getStatusLabel(status: string) {
-  return statusOptions.find((option) => option.value === status)?.label ?? status;
+  const normalizedStatus = normalizeProjectStatus(status);
+  return (
+    statusOptions.find((option) => option.value === normalizedStatus)?.label ??
+    status
+  );
 }
 
 function getStatusClasses(status: string) {
-  if (status === "TERMINADO") {
+  const normalizedStatus = normalizeProjectStatus(status);
+
+  if (normalizedStatus === "PUESTA_EN_MARCHA") {
     return "border-green-200 bg-green-50 text-green-700";
   }
 
-  if (status === "EN_PROGRESO") {
+  if (normalizedStatus === "DESARROLLO_IMPLEMENTACION") {
     return "border-blue-200 bg-blue-50 text-blue-700";
   }
 
-  if (status === "BLOQUEADO") {
-    return "border-red-200 bg-red-50 text-red-700";
+  if (normalizedStatus === "PRUEBAS") {
+    return "border-purple-200 bg-purple-50 text-purple-700";
+  }
+
+  if (normalizedStatus === "TRANSICION") {
+    return "border-orange-200 bg-orange-50 text-orange-700";
+  }
+
+  if (normalizedStatus === "DISENO") {
+    return "border-amber-200 bg-amber-50 text-amber-700";
   }
 
   return "border-slate-200 bg-slate-50 text-slate-700";
@@ -168,7 +199,7 @@ export default function ProjectsPage() {
   const [name, setName] = useState("");
   const [folioPrefix, setFolioPrefix] = useState("");
   const [description, setDescription] = useState("");
-  const [status, setStatus] = useState("PENDIENTE");
+  const [status, setStatus] = useState("ANALISIS");
   const [ownerId, setOwnerId] = useState("");
   const [startDate, setStartDate] = useState("");
   const [estimatedEndDate, setEstimatedEndDate] = useState("");
@@ -254,7 +285,7 @@ export default function ProjectsPage() {
         (project.owner?.name ?? "").toLowerCase().includes(text);
 
       const matchesStatus =
-        statusFilter === "TODOS" || project.status === statusFilter;
+        statusFilter === "TODOS" || normalizeProjectStatus(project.status) === statusFilter;
 
       return matchesSearch && matchesStatus;
     });
@@ -262,20 +293,21 @@ export default function ProjectsPage() {
 
   const totalProjects = projects.length;
   const inProgressProjects = projects.filter(
-    (project) => project.status === "EN_PROGRESO"
+    (project) =>
+      normalizeProjectStatus(project.status) === "DESARROLLO_IMPLEMENTACION"
   ).length;
   const finishedProjects = projects.filter(
-    (project) => project.status === "TERMINADO"
+    (project) => normalizeProjectStatus(project.status) === "PUESTA_EN_MARCHA"
   ).length;
-  const blockedProjects = projects.filter(
-    (project) => project.status === "BLOQUEADO"
+  const transitionProjects = projects.filter(
+    (project) => normalizeProjectStatus(project.status) === "TRANSICION"
   ).length;
 
   function resetForm() {
     setName("");
     setFolioPrefix("");
     setDescription("");
-    setStatus("PENDIENTE");
+    setStatus("ANALISIS");
     setStartDate("");
     setEstimatedEndDate("");
     setActualEndDate("");
@@ -356,21 +388,21 @@ export default function ProjectsPage() {
             />
 
             <SummaryCard
-              title="En progreso"
+              title="Desarrollo"
               value={inProgressProjects}
-              subtitle="Proyectos activos"
+              subtitle="Proyectos en implementación"
             />
 
             <SummaryCard
-              title="Completados"
+              title="Puesta en marcha"
               value={finishedProjects}
-              subtitle="Proyectos cerrados"
+              subtitle="Proyectos listos o cerrados"
             />
 
             <SummaryCard
-              title="Retrasados"
-              value={blockedProjects}
-              subtitle="Requieren atención"
+              title="Transición"
+              value={transitionProjects}
+              subtitle="Proyectos en transición"
             />
           </div>
 
@@ -480,7 +512,7 @@ export default function ProjectsPage() {
 
                     <div className="mt-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
                       <select
-                        value={project.status}
+                        value={normalizeProjectStatus(project.status)}
                         onChange={(e) =>
                           changeProjectStatus(project.id, e.target.value)
                         }

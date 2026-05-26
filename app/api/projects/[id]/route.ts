@@ -102,7 +102,7 @@ export async function PATCH(
       updateData.startDate = parseDate(body.startDate);
       updateData.estimatedEndDate = parseDate(body.estimatedEndDate);
       updateData.actualEndDate = parseDate(body.actualEndDate);
-    } else if (body.status === "TERMINADO") {
+    } else if (body.status === "PUESTA_EN_MARCHA" || body.status === "TERMINADO") {
       updateData.actualEndDate = new Date();
     } else {
       updateData.actualEndDate = existingProject.actualEndDate;

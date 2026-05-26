@@ -73,7 +73,7 @@ export async function POST(req: Request) {
         folio,
         name,
         description,
-        status: body.status ?? "PENDIENTE",
+        status: body.status ?? "ANALISIS",
         ownerId: body.ownerId,
         startDate: body.startDate ? new Date(body.startDate) : null,
         estimatedEndDate: body.estimatedEndDate
