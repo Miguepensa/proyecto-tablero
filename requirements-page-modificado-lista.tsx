@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import KpiFilterCard from "@/components/KpiFilterCard";
-import type { QuickFilter } from "@/lib/kpiFilters";
+import {
+  isBlockedItem,
+  isOpenItem,
+  isOverdueItem,
+  matchesQuickFilter,
+  type QuickFilter,
+} from "@/lib/kpiFilters";
 
 type User = {
   id: string;
@@ -33,7 +39,6 @@ type Requirement = {
   description?: string | null;
   status: string;
   priority: string;
-  blocked?: boolean | null;
   userStoryId?: string | null;
   assignedToId?: string | null;
   startDate?: string | null;
@@ -64,38 +69,22 @@ const priorityOptions = [
   { value: "CRITICA", label: "Crítica" },
 ];
 
-const boardStyles: Record<
-  string,
-  {
-    description: string;
-    dot: string;
+function getInitialQuickFilter(): QuickFilter {
+  if (typeof window === "undefined") return "TOTAL";
+
+  const value = new URLSearchParams(window.location.search).get("quickFilter");
+
+  if (
+    value === "TOTAL" ||
+    value === "ABIERTAS" ||
+    value === "VENCIDAS" ||
+    value === "BLOQUEADAS"
+  ) {
+    return value;
   }
-> = {
-  ANALISIS: {
-    description: "Etapa de análisis",
-    dot: "bg-blue-500",
-  },
-  DISENO: {
-    description: "Etapa de diseño",
-    dot: "bg-cyan-500",
-  },
-  DESARROLLO_IMPLEMENTACION: {
-    description: "Etapa de desarrollo e implementación",
-    dot: "bg-blue-600",
-  },
-  PRUEBAS: {
-    description: "Etapa de pruebas",
-    dot: "bg-purple-500",
-  },
-  TRANSICION: {
-    description: "Etapa de transición",
-    dot: "bg-amber-500",
-  },
-  PUESTA_EN_MARCHA: {
-    description: "Etapa final o liberación",
-    dot: "bg-green-500",
-  },
-};
+
+  return "TOTAL";
+}
 
 function normalizeStatus(status?: string | null) {
   if (!status) return "ANALISIS";
@@ -190,46 +179,6 @@ function formatDateForInput(date?: string | null) {
 
 function getStoryFromRequirement(requirement: Requirement) {
   return requirement.userStory ?? requirement.story ?? null;
-}
-
-function isClosedRequirement(requirement: Requirement) {
-  return normalizeStatus(requirement.status) === "PUESTA_EN_MARCHA";
-}
-
-function isOpenRequirement(requirement: Requirement) {
-  return !isClosedRequirement(requirement);
-}
-
-function isBlockedRequirement(requirement: Requirement) {
-  const rawStatus = (requirement.status ?? "").toUpperCase();
-
-  return rawStatus === "BLOQUEADO" || requirement.blocked === true;
-}
-
-function isOverdueRequirement(requirement: Requirement) {
-  if (isClosedRequirement(requirement)) return false;
-  if (requirement.actualEndDate) return false;
-  if (!requirement.estimatedEndDate) return false;
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const dueDate = new Date(requirement.estimatedEndDate);
-  dueDate.setHours(0, 0, 0, 0);
-
-  return dueDate < today;
-}
-
-function matchesRequirementQuickFilter(
-  requirement: Requirement,
-  quickFilter: QuickFilter,
-) {
-  if (quickFilter === "TOTAL") return true;
-  if (quickFilter === "ABIERTAS") return isOpenRequirement(requirement);
-  if (quickFilter === "VENCIDAS") return isOverdueRequirement(requirement);
-  if (quickFilter === "BLOQUEADAS") return isBlockedRequirement(requirement);
-
-  return true;
 }
 
 function Sidebar() {
@@ -336,7 +285,7 @@ export default function RequirementsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("TODOS");
   const [storyFilter, setStoryFilter] = useState("TODOS");
-  const [quickFilter, setQuickFilter] = useState<QuickFilter>("TOTAL");
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>(getInitialQuickFilter);
 
   const [showRequirementModal, setShowRequirementModal] = useState(false);
   const [editingRequirementId, setEditingRequirementId] = useState<string | null>(null);
@@ -415,7 +364,7 @@ export default function RequirementsPage() {
     loadUsers();
   }, []);
 
-  const baseFilteredRequirements = useMemo(() => {
+  const filteredRequirements = useMemo(() => {
     return requirements.filter((requirement) => {
       const story = getStoryFromRequirement(requirement);
       const project = story?.project;
@@ -430,36 +379,22 @@ export default function RequirementsPage() {
         (project?.name ?? "").toLowerCase().includes(text) ||
         (requirement.assignedTo?.name ?? "").toLowerCase().includes(text);
 
+      const matchesStatus =
+        statusFilter === "TODOS" || normalizeStatus(requirement.status) === statusFilter;
+
       const matchesStory =
         storyFilter === "TODOS" || story?.id === storyFilter || requirement.userStoryId === storyFilter;
 
-      const matchesQuickFilter = matchesRequirementQuickFilter(requirement, quickFilter);
+      const matchesKpiFilter = matchesQuickFilter(requirement, quickFilter);
 
-      return matchesSearch && matchesStory && matchesQuickFilter;
+      return matchesSearch && matchesStatus && matchesStory && matchesKpiFilter;
     });
-  }, [requirements, search, storyFilter, quickFilter]);
-
-  const filteredRequirements = useMemo(() => {
-    return baseFilteredRequirements.filter((requirement) => {
-      return statusFilter === "TODOS" || normalizeStatus(requirement.status) === statusFilter;
-    });
-  }, [baseFilteredRequirements, statusFilter]);
+  }, [requirements, search, statusFilter, storyFilter, quickFilter]);
 
   const totalRequirements = requirements.length;
-  const openRequirements = requirements.filter(isOpenRequirement).length;
-  const overdueRequirements = requirements.filter(isOverdueRequirement).length;
-  const blockedRequirements = requirements.filter(isBlockedRequirement).length;
-
-  function handleQuickFilterClick(filter: QuickFilter) {
-    setQuickFilter(filter);
-    setStatusFilter("TODOS");
-  }
-
-  function getBoardRequirementsByStatus(statusValue: string) {
-    return baseFilteredRequirements.filter(
-      (requirement) => normalizeStatus(requirement.status) === statusValue,
-    );
-  }
+  const openRequirements = requirements.filter(isOpenItem).length;
+  const overdueRequirements = requirements.filter(isOverdueItem).length;
+  const blockedRequirements = requirements.filter(isBlockedItem).length;
 
   function resetForm() {
     setTitle("");
@@ -660,7 +595,10 @@ export default function RequirementsPage() {
               subtitle="Requerimientos registrados"
               filter="TOTAL"
               activeFilter={quickFilter}
-              onClick={handleQuickFilterClick}
+              onClick={(filter) => {
+                setQuickFilter(filter);
+                setStatusFilter("TODOS");
+              }}
             />
 
             <KpiFilterCard
@@ -669,7 +607,10 @@ export default function RequirementsPage() {
               subtitle="Pendientes o en proceso"
               filter="ABIERTAS"
               activeFilter={quickFilter}
-              onClick={handleQuickFilterClick}
+              onClick={(filter) => {
+                setQuickFilter(filter);
+                setStatusFilter("TODOS");
+              }}
             />
 
             <KpiFilterCard
@@ -678,7 +619,10 @@ export default function RequirementsPage() {
               subtitle="Requerimientos vencidos"
               filter="VENCIDAS"
               activeFilter={quickFilter}
-              onClick={handleQuickFilterClick}
+              onClick={(filter) => {
+                setQuickFilter(filter);
+                setStatusFilter("TODOS");
+              }}
             />
 
             <KpiFilterCard
@@ -687,131 +631,12 @@ export default function RequirementsPage() {
               subtitle="Requerimientos bloqueados"
               filter="BLOQUEADAS"
               activeFilter={quickFilter}
-              onClick={handleQuickFilterClick}
+              onClick={(filter) => {
+                setQuickFilter(filter);
+                setStatusFilter("TODOS");
+              }}
             />
           </div>
-
-          <section className="mb-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-center">
-              <div>
-                <h2 className="text-lg font-bold text-slate-950">Tablero de requerimientos</h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  Selecciona una columna para filtrar la lista. Las columnas tienen scroll propio.
-                </p>
-              </div>
-
-              {statusFilter !== "TODOS" && (
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter("TODOS")}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-white"
-                >
-                  Limpiar estado
-                </button>
-              )}
-            </div>
-
-            <div className="overflow-x-auto pb-2">
-              <div className="grid min-w-[980px] grid-cols-6 gap-3">
-                {statusOptions.map((option) => {
-                  const columnRequirements = getBoardRequirementsByStatus(option.value);
-                  const meta = boardStyles[option.value];
-                  const activeColumn = statusFilter === option.value;
-
-                  return (
-                    <section
-                      key={option.value}
-                      className={`max-h-[560px] rounded-2xl border bg-slate-50 p-3 transition ${
-                        activeColumn ? "border-blue-400 ring-2 ring-blue-100" : "border-slate-200"
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setStatusFilter(option.value)}
-                        className="mb-3 flex w-full items-start justify-between gap-3 rounded-xl p-1 text-left transition hover:bg-white"
-                      >
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className={`h-3 w-3 rounded-full ${meta.dot}`} />
-                            <h3 className="text-sm font-black leading-5 text-slate-950">
-                              {option.label}
-                            </h3>
-                          </div>
-
-                          <p className="mt-1 text-[11px] leading-4 text-slate-500">
-                            {meta.description}
-                          </p>
-                        </div>
-
-                        <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-700 shadow-sm">
-                          {columnRequirements.length}
-                        </span>
-                      </button>
-
-                      {columnRequirements.length === 0 ? (
-                        <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-5 text-center text-xs text-slate-400">
-                          Sin requerimientos
-                        </div>
-                      ) : (
-                        <div className="max-h-[455px] space-y-2 overflow-y-auto pr-1">
-                          {columnRequirements.map((requirement) => {
-                            const story = getStoryFromRequirement(requirement);
-
-                            return (
-                              <article
-                                key={requirement.id}
-                                className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                              >
-                                <div className="mb-2 flex items-start justify-between gap-2">
-                                  <div className="min-w-0">
-                                    <h4 className="line-clamp-2 text-xs font-black leading-5 text-slate-950">
-                                      {requirement.title}
-                                    </h4>
-                                  </div>
-
-                                  <PriorityBadge priority={requirement.priority} />
-                                </div>
-
-                                <p className="line-clamp-3 text-[11px] leading-4 text-slate-500">
-                                  {requirement.description || "Sin descripción"}
-                                </p>
-
-                                <p className="mt-2 truncate text-[11px] text-slate-500">
-                                  HU: {story?.title || "Sin historia"}
-                                </p>
-
-                                <div className="mt-3 grid gap-2">
-                                  <select
-                                    value={normalizeStatus(requirement.status)}
-                                    onChange={(e) => changeRequirementStatus(requirement, e.target.value)}
-                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                                  >
-                                    {statusOptions.map((statusOption) => (
-                                      <option key={statusOption.value} value={statusOption.value}>
-                                        {statusOption.label}
-                                      </option>
-                                    ))}
-                                  </select>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => startEditingRequirement(requirement)}
-                                    className="rounded-xl bg-blue-600 px-3 py-2 text-center text-[11px] font-black text-white hover:bg-blue-700"
-                                  >
-                                    Editar
-                                  </button>
-                                </div>
-                              </article>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </section>
-                  );
-                })}
-              </div>
-            </div>
-          </section>
 
           <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="mb-5 flex flex-col justify-between gap-3 xl:flex-row xl:items-center">
@@ -886,11 +711,7 @@ export default function RequirementsPage() {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <span className="inline-flex max-w-full rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-blue-700">
-                            {requirement.folio ?? "Sin folio"}
-                          </span>
-
-                          <h3 className="mt-2 truncate text-base font-black text-slate-950">
+                          <h3 className="truncate text-base font-black text-slate-950">
                             {requirement.title}
                           </h3>
 
