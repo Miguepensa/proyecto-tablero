@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import ProjectStoryCreateButton from "./ProjectStoryCreateButton";
+import KpiFilterCard from "@/components/KpiFilterCard";
+import type { QuickFilter } from "@/lib/kpiFilters";
 
 type User = {
   id: string;
@@ -22,6 +24,7 @@ type Project = {
   startDate?: string | null;
   estimatedEndDate?: string | null;
   actualEndDate?: string | null;
+  blocked?: boolean | null;
   owner?: {
     name: string;
   };
@@ -183,22 +186,47 @@ function Sidebar() {
   );
 }
 
-function SummaryCard({
-  title,
-  value,
-  subtitle,
-}: {
-  title: string;
-  value: number;
-  subtitle: string;
-}) {
+
+
+function isProjectClosed(project: Project) {
+  const normalizedStatus = normalizeProjectStatus(project.status);
+
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-medium text-slate-500">{title}</p>
-      <p className="mt-3 text-3xl font-bold text-slate-950">{value}</p>
-      <p className="mt-2 text-sm text-slate-500">{subtitle}</p>
-    </div>
+    normalizedStatus === "PUESTA_EN_MARCHA" ||
+    project.status === "TERMINADO" ||
+    project.status === "CANCELADO"
   );
+}
+
+function isProjectOpen(project: Project) {
+  return !isProjectClosed(project);
+}
+
+function isProjectBlocked(project: Project) {
+  return project.status === "BLOQUEADO" || project.blocked === true;
+}
+
+function isProjectOverdue(project: Project) {
+  if (isProjectClosed(project)) return false;
+  if (project.actualEndDate) return false;
+  if (!project.estimatedEndDate) return false;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const dueDate = new Date(project.estimatedEndDate);
+  dueDate.setHours(0, 0, 0, 0);
+
+  return dueDate < today;
+}
+
+function matchesProjectQuickFilter(project: Project, quickFilter: QuickFilter) {
+  if (quickFilter === "TOTAL") return true;
+  if (quickFilter === "ABIERTAS") return isProjectOpen(project);
+  if (quickFilter === "VENCIDAS") return isProjectOverdue(project);
+  if (quickFilter === "BLOQUEADAS") return isProjectBlocked(project);
+
+  return true;
 }
 
 export default function ProjectsPage() {
@@ -218,6 +246,7 @@ export default function ProjectsPage() {
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("TODOS");
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>("TOTAL");
 
   async function loadProjects() {
     const res = await fetch("/api/projects", {
@@ -294,23 +323,19 @@ export default function ProjectsPage() {
         (project.owner?.name ?? "").toLowerCase().includes(text);
 
       const matchesStatus =
-        statusFilter === "TODOS" || normalizeProjectStatus(project.status) === statusFilter;
+        statusFilter === "TODOS" ||
+        normalizeProjectStatus(project.status) === statusFilter;
 
-      return matchesSearch && matchesStatus;
+      const matchesKpiFilter = matchesProjectQuickFilter(project, quickFilter);
+
+      return matchesSearch && matchesStatus && matchesKpiFilter;
     });
-  }, [projects, search, statusFilter]);
+  }, [projects, search, statusFilter, quickFilter]);
 
   const totalProjects = projects.length;
-  const inProgressProjects = projects.filter(
-    (project) =>
-      normalizeProjectStatus(project.status) === "DESARROLLO_IMPLEMENTACION"
-  ).length;
-  const finishedProjects = projects.filter(
-    (project) => normalizeProjectStatus(project.status) === "PUESTA_EN_MARCHA"
-  ).length;
-  const transitionProjects = projects.filter(
-    (project) => normalizeProjectStatus(project.status) === "TRANSICION"
-  ).length;
+  const openProjects = projects.filter(isProjectOpen).length;
+  const overdueProjects = projects.filter(isProjectOverdue).length;
+  const blockedProjects = projects.filter(isProjectBlocked).length;
 
   function resetForm() {
     setName("");
@@ -390,28 +415,52 @@ export default function ProjectsPage() {
           </header>
 
           <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <SummaryCard
+            <KpiFilterCard
               title="Total"
               value={totalProjects}
               subtitle="Proyectos registrados"
+              filter="TOTAL"
+              activeFilter={quickFilter}
+              onClick={(filter) => {
+                setQuickFilter(filter);
+                setStatusFilter("TODOS");
+              }}
             />
 
-            <SummaryCard
-              title="Desarrollo"
-              value={inProgressProjects}
-              subtitle="Proyectos en implementación"
+            <KpiFilterCard
+              title="Abiertas"
+              value={openProjects}
+              subtitle="Proyectos abiertos"
+              filter="ABIERTAS"
+              activeFilter={quickFilter}
+              onClick={(filter) => {
+                setQuickFilter(filter);
+                setStatusFilter("TODOS");
+              }}
             />
 
-            <SummaryCard
-              title="Puesta en marcha"
-              value={finishedProjects}
-              subtitle="Proyectos listos o cerrados"
+            <KpiFilterCard
+              title="Vencidas"
+              value={overdueProjects}
+              subtitle="Proyectos vencidos"
+              filter="VENCIDAS"
+              activeFilter={quickFilter}
+              onClick={(filter) => {
+                setQuickFilter(filter);
+                setStatusFilter("TODOS");
+              }}
             />
 
-            <SummaryCard
-              title="Transición"
-              value={transitionProjects}
-              subtitle="Proyectos en transición"
+            <KpiFilterCard
+              title="Bloqueadas"
+              value={blockedProjects}
+              subtitle="Proyectos bloqueados"
+              filter="BLOQUEADAS"
+              activeFilter={quickFilter}
+              onClick={(filter) => {
+                setQuickFilter(filter);
+                setStatusFilter("TODOS");
+              }}
             />
           </div>
 
