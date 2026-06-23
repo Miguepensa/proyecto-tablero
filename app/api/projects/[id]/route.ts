@@ -85,6 +85,25 @@ export async function PATCH(
       updateData.status = body.status;
     }
 
+    if (hasField(body, "blocked")) {
+      const blocked = Boolean(body.blocked);
+      const blockedReason = body.blockedReason
+        ? String(body.blockedReason).trim()
+        : "";
+      const blockedAt = parseDate(body.blockedAt);
+
+      if (blocked && !blockedReason) {
+        return NextResponse.json(
+          { error: "La observación del bloqueo es obligatoria" },
+          { status: 400 }
+        );
+      }
+
+      updateData.blocked = blocked;
+      updateData.blockedReason = blocked ? blockedReason : null;
+      updateData.blockedAt = blocked ? blockedAt ?? new Date() : null;
+    }
+
     if (isFullEdit) {
       if (!body.name || !String(body.name).trim()) {
         return NextResponse.json(
@@ -137,6 +156,9 @@ export async function PATCH(
           startDate: existingProject.startDate,
           estimatedEndDate: existingProject.estimatedEndDate,
           actualEndDate: existingProject.actualEndDate,
+          blocked: existingProject.blocked,
+          blockedReason: existingProject.blockedReason,
+          blockedAt: existingProject.blockedAt,
         },
         newValues: {
           id: updatedProject.id,
@@ -150,6 +172,9 @@ export async function PATCH(
           startDate: updatedProject.startDate,
           estimatedEndDate: updatedProject.estimatedEndDate,
           actualEndDate: updatedProject.actualEndDate,
+          blocked: updatedProject.blocked,
+          blockedReason: updatedProject.blockedReason,
+          blockedAt: updatedProject.blockedAt,
         },
       },
     });
@@ -204,6 +229,9 @@ export async function DELETE(
           startDate: existingProject.startDate,
           estimatedEndDate: existingProject.estimatedEndDate,
           actualEndDate: existingProject.actualEndDate,
+          blocked: existingProject.blocked,
+          blockedReason: existingProject.blockedReason,
+          blockedAt: existingProject.blockedAt,
         },
         newValues: {},
       },

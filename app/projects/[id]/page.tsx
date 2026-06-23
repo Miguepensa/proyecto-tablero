@@ -11,6 +11,9 @@ type Project = {
   startDate?: string | null;
   estimatedEndDate?: string | null;
   actualEndDate?: string | null;
+  blocked?: boolean | null;
+  blockedReason?: string | null;
+  blockedAt?: string | null;
   owner?: {
     name: string;
   };
@@ -426,6 +429,17 @@ export default async function ProjectBoardPage({
                 <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
                   {project.description || "Sin descripción registrada."}
                 </p>
+
+                {project.blocked ? (
+                  <div className="mt-4 max-w-3xl rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                    <p className="font-bold">
+                      Proyecto bloqueado el {formatDate(project.blockedAt)}
+                    </p>
+                    <p className="mt-1">
+                      {project.blockedReason || "Sin observación registrada."}
+                    </p>
+                  </div>
+                ) : null}
               </div>
 
               <div className="flex flex-wrap gap-3">

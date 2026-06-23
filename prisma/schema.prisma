@@ -97,6 +97,9 @@ model Project {
   startDate        DateTime?
   estimatedEndDate DateTime?
   actualEndDate    DateTime?
+  blocked          Boolean       @default(false)
+  blockedReason    String?
+  blockedAt        DateTime?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 

@@ -25,6 +25,8 @@ type Project = {
   estimatedEndDate?: string | null;
   actualEndDate?: string | null;
   blocked?: boolean | null;
+  blockedReason?: string | null;
+  blockedAt?: string | null;
   owner?: {
     name: string;
   };
@@ -100,6 +102,20 @@ function formatDate(date?: string | null) {
     month: "short",
     year: "numeric",
   });
+}
+
+function toInputDate(date?: string | null) {
+  if (!date) return "";
+
+  try {
+    return new Date(date).toISOString().slice(0, 10);
+  } catch {
+    return "";
+  }
+}
+
+function getTodayInputDate() {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -248,6 +264,13 @@ export default function ProjectsPage() {
   const [statusFilter, setStatusFilter] = useState("TODOS");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("TOTAL");
 
+  const [showBlockModal, setShowBlockModal] = useState(false);
+  const [blockProjectId, setBlockProjectId] = useState("");
+  const [blockReason, setBlockReason] = useState("");
+  const [blockDate, setBlockDate] = useState(getTodayInputDate());
+  const [blockLoading, setBlockLoading] = useState(false);
+  const [blockError, setBlockError] = useState("");
+
   async function loadProjects() {
     const res = await fetch("/api/projects", {
       cache: "no-store",
@@ -306,6 +329,87 @@ export default function ProjectsPage() {
     }
   }
 
+  function openBlockModal(project?: Project) {
+    const selectedProject = project ?? projects[0];
+
+    setBlockProjectId(selectedProject?.id ?? "");
+    setBlockReason(selectedProject?.blockedReason ?? "");
+    setBlockDate(toInputDate(selectedProject?.blockedAt) || getTodayInputDate());
+    setBlockError("");
+    setShowBlockModal(true);
+  }
+
+  function closeBlockModal() {
+    setShowBlockModal(false);
+    setBlockProjectId("");
+    setBlockReason("");
+    setBlockDate(getTodayInputDate());
+    setBlockError("");
+  }
+
+  async function handleBlockSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (!blockProjectId) {
+      setBlockError("Selecciona el proyecto que se va a bloquear.");
+      return;
+    }
+
+    if (!blockReason.trim()) {
+      setBlockError("Escribe la observación del bloqueo.");
+      return;
+    }
+
+    setBlockLoading(true);
+    setBlockError("");
+
+    const res = await fetch(`/api/projects/${blockProjectId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        blocked: true,
+        blockedReason: blockReason,
+        blockedAt: blockDate || null,
+      }),
+    });
+
+    if (res.ok) {
+      closeBlockModal();
+      setQuickFilter("BLOQUEADAS");
+      setStatusFilter("TODOS");
+      await loadProjects();
+    } else {
+      const data = await res.json().catch(() => null);
+      setBlockError(data?.error ?? "No se pudo registrar el bloqueo.");
+    }
+
+    setBlockLoading(false);
+  }
+
+  async function unblockProject(projectId: string) {
+    const confirmed = window.confirm("¿Quieres quitar el bloqueo de este proyecto?");
+
+    if (!confirmed) return;
+
+    const res = await fetch(`/api/projects/${projectId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        blocked: false,
+      }),
+    });
+
+    if (res.ok) {
+      await loadProjects();
+    } else {
+      alert("No se pudo quitar el bloqueo del proyecto");
+    }
+  }
+
   useEffect(() => {
     loadProjects();
     loadUsers();
@@ -320,6 +424,7 @@ export default function ProjectsPage() {
         (project.folio ?? "").toLowerCase().includes(text) ||
         (project.folioPrefix ?? "").toLowerCase().includes(text) ||
         (project.description ?? "").toLowerCase().includes(text) ||
+        (project.blockedReason ?? "").toLowerCase().includes(text) ||
         (project.owner?.name ?? "").toLowerCase().includes(text);
 
       const matchesStatus =
@@ -405,13 +510,23 @@ export default function ProjectsPage() {
               </p>
             </div>
 
-            <button
-              type="button"
-              className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700"
-              onClick={() => setShowProjectModal(true)}
-            >
-              + Nuevo proyecto
-            </button>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                className="rounded-2xl bg-red-600 px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-red-700"
+                onClick={() => openBlockModal()}
+              >
+                + Registrar bloqueo
+              </button>
+
+              <button
+                type="button"
+                className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700"
+                onClick={() => setShowProjectModal(true)}
+              >
+                + Nuevo proyecto
+              </button>
+            </div>
           </header>
 
           <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -440,9 +555,9 @@ export default function ProjectsPage() {
             />
 
             <KpiFilterCard
-              title="Vencidas"
+              title="Atrasadas"
               value={overdueProjects}
-              subtitle="Proyectos vencidos"
+              subtitle="Proyectos atrasados"
               filter="VENCIDAS"
               activeFilter={quickFilter}
               onClick={(filter) => {
@@ -507,13 +622,23 @@ export default function ProjectsPage() {
                   Crea un nuevo proyecto o ajusta los filtros de búsqueda.
                 </p>
 
-                <button
-                  type="button"
-                  className="mt-6 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-700"
-                  onClick={() => setShowProjectModal(true)}
-                >
-                  + Nuevo proyecto
-                </button>
+                {quickFilter === "BLOQUEADAS" ? (
+                  <button
+                    type="button"
+                    className="mt-6 rounded-2xl bg-red-600 px-5 py-3 text-sm font-bold text-white hover:bg-red-700"
+                    onClick={() => openBlockModal()}
+                  >
+                    + Registrar bloqueo
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="mt-6 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-700"
+                    onClick={() => setShowProjectModal(true)}
+                  >
+                    + Nuevo proyecto
+                  </button>
+                )}
               </div>
             ) : (
               <div className="grid gap-4 xl:grid-cols-2">
@@ -540,6 +665,23 @@ export default function ProjectsPage() {
                         <p className="mt-1 line-clamp-2 text-xs text-slate-500">
                           {project.description || "Sin descripción"}
                         </p>
+
+                        {isProjectOverdue(project) ? (
+                          <p className="mt-2 inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700">
+                            Atrasado desde {formatDate(project.estimatedEndDate)}
+                          </p>
+                        ) : null}
+
+                        {isProjectBlocked(project) ? (
+                          <div className="mt-2 rounded-2xl border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700">
+                            <p className="font-bold">
+                              Bloqueado el {formatDate(project.blockedAt)}
+                            </p>
+                            <p className="mt-1 line-clamp-2">
+                              {project.blockedReason || "Sin observación registrada"}
+                            </p>
+                          </div>
+                        ) : null}
                       </div>
 
                       <StatusBadge status={project.status} />
@@ -601,6 +743,24 @@ export default function ProjectsPage() {
                           Ver detalle
                         </Link>
 
+                        {isProjectBlocked(project) ? (
+                          <button
+                            type="button"
+                            onClick={() => unblockProject(project.id)}
+                            className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-center text-xs font-bold text-red-700 hover:bg-red-100"
+                          >
+                            Quitar bloqueo
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => openBlockModal(project)}
+                            className="rounded-xl border border-red-200 px-3 py-2 text-center text-xs font-bold text-red-700 hover:bg-red-50"
+                          >
+                            Bloquear
+                          </button>
+                        )}
+
                         <button
                           type="button"
                           onClick={() => deleteProject(project.id)}
@@ -617,6 +777,117 @@ export default function ProjectsPage() {
           </section>
         </section>
       </div>
+
+
+      {showBlockModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-6">
+          <form
+            className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl"
+            onSubmit={handleBlockSubmit}
+          >
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-950">
+                  Registrar bloqueo
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Selecciona el proyecto, captura la observación y la fecha del bloqueo.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="rounded-full bg-slate-100 px-3 py-1 text-sm font-bold text-slate-500 hover:bg-slate-200"
+                onClick={closeBlockModal}
+              >
+                ✕
+              </button>
+            </div>
+
+            {blockError ? (
+              <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                {blockError}
+              </div>
+            ) : null}
+
+            <div className="grid gap-5">
+              <label>
+                <span className="mb-2 block text-sm font-bold text-slate-700">
+                  Proyecto
+                </span>
+                <select
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100"
+                  value={blockProjectId}
+                  onChange={(e) => {
+                    const selectedProject = projects.find(
+                      (project) => project.id === e.target.value
+                    );
+
+                    setBlockProjectId(e.target.value);
+                    setBlockReason(selectedProject?.blockedReason ?? "");
+                    setBlockDate(
+                      toInputDate(selectedProject?.blockedAt) || getTodayInputDate()
+                    );
+                  }}
+                  required
+                >
+                  <option value="">Seleccionar proyecto</option>
+                  {projects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.folio ? `${project.folio} - ` : ""}
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                <span className="mb-2 block text-sm font-bold text-slate-700">
+                  Observación del bloqueo
+                </span>
+                <textarea
+                  className="min-h-32 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100"
+                  value={blockReason}
+                  onChange={(e) => setBlockReason(e.target.value)}
+                  placeholder="Escribe por qué se bloqueó el proyecto..."
+                  required
+                />
+              </label>
+
+              <label>
+                <span className="mb-2 block text-sm font-bold text-slate-700">
+                  Fecha de bloqueo
+                </span>
+                <input
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100"
+                  type="date"
+                  value={blockDate}
+                  onChange={(e) => setBlockDate(e.target.value)}
+                  required
+                />
+              </label>
+
+              <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                <button
+                  type="submit"
+                  className="rounded-2xl bg-red-600 px-5 py-3 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-70"
+                  disabled={blockLoading || projects.length === 0}
+                >
+                  {blockLoading ? "Guardando..." : "Guardar bloqueo"}
+                </button>
+
+                <button
+                  type="button"
+                  className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-200"
+                  onClick={closeBlockModal}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      )}
 
       {showProjectModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-6">

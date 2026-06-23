@@ -19,6 +19,9 @@ type Project = {
   startDate?: string | null;
   estimatedEndDate?: string | null;
   actualEndDate?: string | null;
+  blocked?: boolean | null;
+  blockedReason?: string | null;
+  blockedAt?: string | null;
   owner?: {
     name?: string | null;
   } | null;
@@ -225,8 +228,8 @@ function isDone(status?: string | null) {
   return ["TERMINADO", "COMPLETADO", "COMPLETED", "PUESTA_EN_MARCHA"].includes(normalizeStatus(status));
 }
 
-function isBlocked(status?: string | null) {
-  return ["BLOQUEADO", "BLOCKED"].includes(normalizeStatus(status));
+function isBlocked(status?: string | null, blocked?: boolean | null) {
+  return blocked === true || ["BLOQUEADO", "BLOCKED"].includes(normalizeStatus(status));
 }
 
 function isOverdue(item: {
@@ -291,13 +294,14 @@ function matchesQuickFilter(
     dueDate?: string | null;
     actualEndDate?: string | null;
     completedAt?: string | null;
+    blocked?: boolean | null;
   },
   filter: QuickFilter
 ) {
   if (filter === "TOTAL") return true;
   if (filter === "ABIERTAS") return !isDone(item.status);
   if (filter === "VENCIDAS") return isOverdue(item);
-  if (filter === "BLOQUEADAS") return isBlocked(item.status);
+  if (filter === "BLOQUEADAS") return isBlocked(item.status, item.blocked);
 
   return true;
 }
@@ -593,6 +597,11 @@ function RecentProjectRows({ projects }: { projects: Project[] }) {
             <StatusPill label={statusLabel(project.status)} tone={statusTone(project.status)} />
           </div>
           <p className="mt-2 text-xs text-slate-500">Fin: {formatDate(project.estimatedEndDate)}</p>
+          {project.blocked ? (
+            <p className="mt-1 line-clamp-2 text-xs font-bold text-red-700">
+              Bloqueado: {project.blockedReason || "Sin observación"}
+            </p>
+          ) : null}
         </article>
       ))}
     </div>
@@ -676,7 +685,7 @@ export default async function DashboardPage({
 
   const totalProjects = projects.length;
   const finishedProjects = projects.filter((project) => isDone(project.status)).length;
-  const blockedProjects = projects.filter((project) => isBlocked(project.status)).length;
+  const blockedProjects = projects.filter((project) => isBlocked(project.status, project.blocked)).length;
   const activeProjects = projects.filter((project) => !isDone(project.status)).length;
   const overdueProjects = projects.filter(isOverdue).length;
   const projectStatuses = countByStatus(projects);

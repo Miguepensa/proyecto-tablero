@@ -1,0 +1,3 @@
+ALTER TABLE "Project" ADD COLUMN "blocked" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Project" ADD COLUMN "blockedReason" TEXT;
+ALTER TABLE "Project" ADD COLUMN "blockedAt" TIMESTAMP(3);
