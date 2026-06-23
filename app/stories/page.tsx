@@ -6,6 +6,7 @@ import RequirementCreateButton from "./RequirementCreateButton";
 import KpiFilterCard from "@/components/KpiFilterCard";
 import {
   isBlockedItem,
+  isCompletedItem,
   isOpenItem,
   isOverdueItem,
   matchesQuickFilter,
@@ -74,7 +75,8 @@ function getInitialQuickFilter(): QuickFilter {
     value === "TOTAL" ||
     value === "ABIERTAS" ||
     value === "VENCIDAS" ||
-    value === "BLOQUEADAS"
+    value === "BLOQUEADAS" ||
+    value === "COMPLETADAS"
   ) {
     return value;
   }
@@ -417,6 +419,7 @@ export default function StoriesPage() {
   const openStories = stories.filter(isOpenItem).length;
   const overdueStories = stories.filter(isOverdueItem).length;
   const blockedStories = stories.filter(isBlockedItem).length;
+  const completedStories = stories.filter(isCompletedItem).length;
 
   function resetForm() {
     setTitle("");
@@ -549,7 +552,7 @@ export default function StoriesPage() {
             </button>
           </header>
 
-          <div className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
             <KpiFilterCard
               title="Total"
               value={totalStories}
@@ -591,6 +594,18 @@ export default function StoriesPage() {
               value={blockedStories}
               subtitle="Historias bloqueadas"
               filter="BLOQUEADAS"
+              activeFilter={quickFilter}
+              onClick={(filter) => {
+                setQuickFilter(filter);
+                setStatusFilter("TODOS");
+              }}
+            />
+
+            <KpiFilterCard
+              title="Completadas"
+              value={completedStories}
+              subtitle="Historias completadas"
+              filter="COMPLETADAS"
               activeFilter={quickFilter}
               onClick={(filter) => {
                 setQuickFilter(filter);

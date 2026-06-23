@@ -196,6 +196,20 @@ function isClosedRequirement(requirement: Requirement) {
   return normalizeStatus(requirement.status) === "PUESTA_EN_MARCHA";
 }
 
+function isCompletedRequirement(requirement: Requirement) {
+  const normalizedStatus = normalizeStatus(requirement.status);
+
+  return (
+    Boolean(requirement.actualEndDate) ||
+    normalizedStatus === "PUESTA_EN_MARCHA" ||
+    requirement.status === "TERMINADO" ||
+    requirement.status === "COMPLETADO" ||
+    requirement.status === "COMPLETED" ||
+    requirement.status === "CERRADO" ||
+    requirement.status === "FINALIZADO"
+  );
+}
+
 function isOpenRequirement(requirement: Requirement) {
   return !isClosedRequirement(requirement);
 }
@@ -228,6 +242,7 @@ function matchesRequirementQuickFilter(
   if (quickFilter === "ABIERTAS") return isOpenRequirement(requirement);
   if (quickFilter === "VENCIDAS") return isOverdueRequirement(requirement);
   if (quickFilter === "BLOQUEADAS") return isBlockedRequirement(requirement);
+  if (quickFilter === "COMPLETADAS") return isCompletedRequirement(requirement);
 
   return true;
 }
@@ -449,6 +464,7 @@ export default function RequirementsPage() {
   const openRequirements = requirements.filter(isOpenRequirement).length;
   const overdueRequirements = requirements.filter(isOverdueRequirement).length;
   const blockedRequirements = requirements.filter(isBlockedRequirement).length;
+  const completedRequirements = requirements.filter(isCompletedRequirement).length;
 
   function handleQuickFilterClick(filter: QuickFilter) {
     setQuickFilter(filter);
@@ -653,7 +669,7 @@ export default function RequirementsPage() {
             </button>
           </header>
 
-          <div className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
             <KpiFilterCard
               title="Total"
               value={totalRequirements}
@@ -686,6 +702,15 @@ export default function RequirementsPage() {
               value={blockedRequirements}
               subtitle="Requerimientos bloqueados"
               filter="BLOQUEADAS"
+              activeFilter={quickFilter}
+              onClick={handleQuickFilterClick}
+            />
+
+            <KpiFilterCard
+              title="Completadas"
+              value={completedRequirements}
+              subtitle="Requerimientos completados"
+              filter="COMPLETADAS"
               activeFilter={quickFilter}
               onClick={handleQuickFilterClick}
             />

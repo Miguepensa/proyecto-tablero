@@ -1,10 +1,16 @@
-export type QuickFilter = "TOTAL" | "ABIERTAS" | "VENCIDAS" | "BLOQUEADAS";
+export type QuickFilter =
+  | "TOTAL"
+  | "ABIERTAS"
+  | "VENCIDAS"
+  | "BLOQUEADAS"
+  | "COMPLETADAS";
 
 export const KPI_COLORS = {
   TOTAL: "#00AAFF",
   ABIERTAS: "#36FF7D",
   VENCIDAS: "#FFC100",
   BLOQUEADAS: "#FF0027",
+  COMPLETADAS: "#16A34A",
 };
 
 export type FilterableItem = {
@@ -32,7 +38,23 @@ export function isClosedItem(item: FilterableItem) {
   return (
     status === "TERMINADO" ||
     status === "COMPLETADO" ||
+    status === "COMPLETED" ||
     status === "CANCELADO" ||
+    status === "CERRADO" ||
+    status === "FINALIZADO" ||
+    status === "PUESTA_EN_MARCHA"
+  );
+}
+
+export function isCompletedItem(item: FilterableItem) {
+  const status = normalizeStatus(item.status);
+
+  return (
+    Boolean(item.actualEndDate) ||
+    Boolean(item.completedAt) ||
+    status === "TERMINADO" ||
+    status === "COMPLETADO" ||
+    status === "COMPLETED" ||
     status === "CERRADO" ||
     status === "FINALIZADO" ||
     status === "PUESTA_EN_MARCHA"
@@ -74,6 +96,7 @@ export function matchesQuickFilter(
   if (quickFilter === "ABIERTAS") return isOpenItem(item);
   if (quickFilter === "VENCIDAS") return isOverdueItem(item);
   if (quickFilter === "BLOQUEADAS") return isBlockedItem(item);
+  if (quickFilter === "COMPLETADAS") return isCompletedItem(item);
 
   return true;
 }

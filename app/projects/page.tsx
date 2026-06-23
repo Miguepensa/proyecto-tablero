@@ -214,6 +214,20 @@ function isProjectClosed(project: Project) {
   );
 }
 
+function isProjectCompleted(project: Project) {
+  const normalizedStatus = normalizeProjectStatus(project.status);
+
+  return (
+    Boolean(project.actualEndDate) ||
+    normalizedStatus === "PUESTA_EN_MARCHA" ||
+    project.status === "TERMINADO" ||
+    project.status === "COMPLETADO" ||
+    project.status === "COMPLETED" ||
+    project.status === "CERRADO" ||
+    project.status === "FINALIZADO"
+  );
+}
+
 function isProjectOpen(project: Project) {
   return !isProjectClosed(project);
 }
@@ -241,6 +255,7 @@ function matchesProjectQuickFilter(project: Project, quickFilter: QuickFilter) {
   if (quickFilter === "ABIERTAS") return isProjectOpen(project);
   if (quickFilter === "VENCIDAS") return isProjectOverdue(project);
   if (quickFilter === "BLOQUEADAS") return isProjectBlocked(project);
+  if (quickFilter === "COMPLETADAS") return isProjectCompleted(project);
 
   return true;
 }
@@ -441,6 +456,7 @@ export default function ProjectsPage() {
   const openProjects = projects.filter(isProjectOpen).length;
   const overdueProjects = projects.filter(isProjectOverdue).length;
   const blockedProjects = projects.filter(isProjectBlocked).length;
+  const completedProjects = projects.filter(isProjectCompleted).length;
 
   function resetForm() {
     setName("");
@@ -529,7 +545,7 @@ export default function ProjectsPage() {
             </div>
           </header>
 
-          <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
             <KpiFilterCard
               title="Total"
               value={totalProjects}
@@ -571,6 +587,18 @@ export default function ProjectsPage() {
               value={blockedProjects}
               subtitle="Proyectos bloqueados"
               filter="BLOQUEADAS"
+              activeFilter={quickFilter}
+              onClick={(filter) => {
+                setQuickFilter(filter);
+                setStatusFilter("TODOS");
+              }}
+            />
+
+            <KpiFilterCard
+              title="Completadas"
+              value={completedProjects}
+              subtitle="Proyectos completados"
+              filter="COMPLETADAS"
               activeFilter={quickFilter}
               onClick={(filter) => {
                 setQuickFilter(filter);
