@@ -1,4 +1,9 @@
 import Link from "next/link";
+import {
+  getWorkflowStatusClasses as getStatusClasses,
+  getWorkflowStatusLabel as getStatusLabel,
+  isClosedStatus,
+} from "@/lib/statuses";
 
 async function getProjects() {
   const res = await fetch("https://proyecto-tablero.vercel.app/api/projects", {
@@ -109,40 +114,6 @@ function formatDate(date: string) {
     month: "short",
     year: "numeric",
   });
-}
-
-function getStatusLabel(status: string) {
-  if (status === "BACKLOG") return "Backlog";
-  if (status === "PENDIENTE") return "Pendiente";
-  if (status === "EN_PROGRESO") return "En progreso";
-  if (status === "REVISION") return "Revisión";
-  if (status === "TERMINADO") return "Terminado";
-  if (status === "BLOQUEADO") return "Bloqueado";
-  return status;
-}
-
-function getStatusClasses(status: string) {
-  if (status === "TERMINADO") {
-    return "border-green-200 bg-green-50 text-green-700";
-  }
-
-  if (status === "EN_PROGRESO") {
-    return "border-blue-200 bg-blue-50 text-blue-700";
-  }
-
-  if (status === "REVISION") {
-    return "border-purple-200 bg-purple-50 text-purple-700";
-  }
-
-  if (status === "BLOQUEADO") {
-    return "border-red-200 bg-red-50 text-red-700";
-  }
-
-  if (status === "PENDIENTE") {
-    return "border-orange-200 bg-orange-50 text-orange-700";
-  }
-
-  return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
 function getTypeClasses(type: CalendarItem["type"]) {
@@ -295,7 +266,7 @@ export default async function CalendarPage() {
     const itemDate = parseDate(item.date);
     itemDate.setHours(0, 0, 0, 0);
 
-    return itemDate.getTime() < today.getTime() && item.status !== "TERMINADO";
+    return itemDate.getTime() < today.getTime() && !isClosedStatus(item.status);
   }).length;
 
   return (
@@ -387,7 +358,7 @@ export default async function CalendarPage() {
 
                   const isOverdue =
                     itemDate.getTime() < today.getTime() &&
-                    item.status !== "TERMINADO";
+                    !isClosedStatus(item.status);
 
                   return (
                     <article

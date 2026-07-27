@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { parseWorkflowStatus } from "@/lib/statuses";
 import { NextResponse } from "next/server";
 
 function parseDate(value: string | null | undefined) {
@@ -80,9 +81,19 @@ export async function PATCH(
       hasField(body, "actualEndDate");
 
     const updateData: any = {};
+    let requestedStatus: ReturnType<typeof parseWorkflowStatus> = null;
 
     if (hasField(body, "status")) {
-      updateData.status = body.status;
+      requestedStatus = parseWorkflowStatus(body.status);
+
+      if (!requestedStatus) {
+        return NextResponse.json(
+          { error: "El estado del proyecto no es válido" },
+          { status: 400 },
+        );
+      }
+
+      updateData.status = requestedStatus;
     }
 
     if (hasField(body, "blocked")) {
@@ -121,8 +132,9 @@ export async function PATCH(
       updateData.startDate = parseDate(body.startDate);
       updateData.estimatedEndDate = parseDate(body.estimatedEndDate);
       updateData.actualEndDate = parseDate(body.actualEndDate);
-    } else if (body.status === "PUESTA_EN_MARCHA" || body.status === "TERMINADO") {
-      updateData.actualEndDate = new Date();
+    } else if (requestedStatus) {
+      updateData.actualEndDate =
+        requestedStatus === "PUESTA_EN_MARCHA" ? new Date() : null;
     } else {
       updateData.actualEndDate = existingProject.actualEndDate;
     }

@@ -2,6 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import {
+  WORKFLOW_STATUS_OPTIONS as statusOptions,
+  normalizeWorkflowStatus,
+} from "@/lib/statuses";
 
 type User = {
   id: string;
@@ -27,18 +31,6 @@ type Story = {
 type Props = {
   initialStories: Story[];
 };
-
-const statusOptions = [
-  { value: "ANALISIS", label: "Análisis" },
-  { value: "DISENO", label: "Diseño" },
-  {
-    value: "DESARROLLO_IMPLEMENTACION",
-    label: "Desarrollo / implementación",
-  },
-  { value: "PRUEBAS", label: "Pruebas" },
-  { value: "TRANSICION", label: "Transición" },
-  { value: "PUESTA_EN_MARCHA", label: "Puesta en marcha" },
-];
 
 const columns = [
   {
@@ -76,6 +68,12 @@ const columns = [
     title: "Puesta en marcha",
     description: "Etapa de puesta en marcha",
     dot: "bg-green-500",
+  },
+  {
+    value: "CANCELADO",
+    title: "Cancelado",
+    description: "Historias canceladas",
+    dot: "bg-red-500",
   },
 ];
 
@@ -201,7 +199,9 @@ export default function BoardClient({ initialStories }: Props) {
   }
 
   function getStoriesByStatus(status: string) {
-    return stories.filter((story) => story.status === status);
+    return stories.filter(
+      (story) => normalizeWorkflowStatus(story.status) === status,
+    );
   }
 
   return (
@@ -246,7 +246,7 @@ export default function BoardClient({ initialStories }: Props) {
       </div>
 
       <div className="overflow-x-auto overflow-y-hidden pb-2">
-        <div className="grid min-w-[1180px] grid-cols-6 gap-3">
+        <div className="grid min-w-[1380px] grid-cols-7 gap-3">
           {columns.map((column) => {
             const columnStories = getStoriesByStatus(column.value);
 

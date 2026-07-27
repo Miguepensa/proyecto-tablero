@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import type { CSSProperties, ReactNode } from "react";
+import {
+  getWorkflowStatusLabel,
+  isClosedStatus,
+  parseWorkflowStatus,
+} from "@/lib/statuses";
 
 type User = {
   id: string;
@@ -170,6 +175,11 @@ function normalizeStatus(status?: string | null) {
 
 function statusLabel(status?: string | null) {
   const normalized = normalizeStatus(status);
+  const workflowStatus = parseWorkflowStatus(normalized);
+
+  if (workflowStatus) {
+    return getWorkflowStatusLabel(workflowStatus);
+  }
 
   const labels: Record<string, string> = {
     ANALISIS: "Análisis",
@@ -229,6 +239,8 @@ function isDone(status?: string | null) {
 }
 
 function isBlocked(status?: string | null, blocked?: boolean | null) {
+  if (isClosedStatus(status)) return false;
+
   return blocked === true || ["BLOQUEADO", "BLOCKED"].includes(normalizeStatus(status));
 }
 
@@ -241,7 +253,12 @@ function isOverdue(item: {
 }) {
   const dateValue = item.estimatedEndDate ?? item.dueDate;
 
-  if (!dateValue || item.actualEndDate || item.completedAt || isDone(item.status)) {
+  if (
+    !dateValue ||
+    item.actualEndDate ||
+    item.completedAt ||
+    isClosedStatus(item.status)
+  ) {
     return false;
   }
 
@@ -299,7 +316,7 @@ function matchesQuickFilter(
   filter: QuickFilter
 ) {
   if (filter === "TOTAL") return true;
-  if (filter === "ABIERTAS") return !isDone(item.status);
+  if (filter === "ABIERTAS") return !isClosedStatus(item.status);
   if (filter === "VENCIDAS") return isOverdue(item);
   if (filter === "BLOQUEADAS") return isBlocked(item.status, item.blocked);
 
@@ -686,7 +703,7 @@ export default async function DashboardPage({
   const totalProjects = projects.length;
   const finishedProjects = projects.filter((project) => isDone(project.status)).length;
   const blockedProjects = projects.filter((project) => isBlocked(project.status, project.blocked)).length;
-  const activeProjects = projects.filter((project) => !isDone(project.status)).length;
+  const activeProjects = projects.filter((project) => !isClosedStatus(project.status)).length;
   const overdueProjects = projects.filter(isOverdue).length;
   const projectStatuses = countByStatus(projects);
   const recentProjects = projects.filter((project) => matchesQuickFilter(project, projectFilter)).slice(0, 6);
@@ -694,7 +711,7 @@ export default async function DashboardPage({
   const totalStories = stories.length;
   const finishedStories = stories.filter((story) => isDone(story.status)).length;
   const blockedStories = stories.filter((story) => isBlocked(story.status)).length;
-  const activeStories = stories.filter((story) => !isDone(story.status)).length;
+  const activeStories = stories.filter((story) => !isClosedStatus(story.status)).length;
   const overdueStories = stories.filter(isOverdue).length;
   const storyStatuses = countByStatus(stories);
   const storiesByProject = countByValue(stories, (story) => story.project?.name || "Sin proyecto").slice(0, 6);
@@ -703,7 +720,7 @@ export default async function DashboardPage({
   const totalRequisitions = requisitions.length;
   const finishedRequisitions = requisitions.filter((item) => isDone(item.status)).length;
   const blockedRequisitions = requisitions.filter((item) => isBlocked(item.status)).length;
-  const activeRequisitions = requisitions.filter((item) => !isDone(item.status)).length;
+  const activeRequisitions = requisitions.filter((item) => !isClosedStatus(item.status)).length;
   const overdueRequisitions = requisitions.filter(isOverdue).length;
   const requisitionStatuses = countByStatus(requisitions);
   const recentRequisitions = requisitions.filter((item) => matchesQuickFilter(item, reqFilter)).slice(0, 6);

@@ -4,6 +4,14 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import KpiFilterCard from "@/components/KpiFilterCard";
 import type { QuickFilter } from "@/lib/kpiFilters";
+import {
+  WORKFLOW_STATUS_OPTIONS as statusOptions,
+  getWorkflowStatusClasses as getStatusClasses,
+  getWorkflowStatusLabel as getStatusLabel,
+  isClosedStatus,
+  isCompletedStatus,
+  normalizeWorkflowStatus as normalizeStatus,
+} from "@/lib/statuses";
 
 type User = {
   id: string;
@@ -45,18 +53,6 @@ type Requirement = {
   createdBy?: User | null;
 };
 
-const statusOptions = [
-  { value: "ANALISIS", label: "Análisis" },
-  { value: "DISENO", label: "Diseño" },
-  {
-    value: "DESARROLLO_IMPLEMENTACION",
-    label: "Desarrollo / implementación",
-  },
-  { value: "PRUEBAS", label: "Pruebas" },
-  { value: "TRANSICION", label: "Transición" },
-  { value: "PUESTA_EN_MARCHA", label: "Puesta en marcha" },
-];
-
 const priorityOptions = [
   { value: "BAJA", label: "Baja" },
   { value: "MEDIA", label: "Media" },
@@ -95,61 +91,17 @@ const boardStyles: Record<
     description: "Etapa final o liberación",
     dot: "bg-green-500",
   },
+  CANCELADO: {
+    description: "Requerimiento cancelado",
+    dot: "bg-red-500",
+  },
 };
-
-function normalizeStatus(status?: string | null) {
-  if (!status) return "ANALISIS";
-  if (status === "BACKLOG") return "ANALISIS";
-  if (status === "PENDIENTE") return "ANALISIS";
-  if (status === "EN_PROGRESO") return "DESARROLLO_IMPLEMENTACION";
-  if (status === "BLOQUEADO") return "TRANSICION";
-  if (status === "REVISION") return "PRUEBAS";
-  if (status === "TERMINADO") return "PUESTA_EN_MARCHA";
-  if (status === "CANCELADO") return "TRANSICION";
-
-  return status;
-}
-
-function getStatusLabel(status: string) {
-  const normalizedStatus = normalizeStatus(status);
-
-  return (
-    statusOptions.find((option) => option.value === normalizedStatus)?.label ??
-    normalizedStatus
-  );
-}
 
 function getPriorityLabel(priority: string) {
   return (
     priorityOptions.find((option) => option.value === priority)?.label ??
     priority
   );
-}
-
-function getStatusClasses(status: string) {
-  const normalizedStatus = normalizeStatus(status);
-
-  if (normalizedStatus === "PUESTA_EN_MARCHA") {
-    return "border-green-200 bg-green-50 text-green-700";
-  }
-
-  if (normalizedStatus === "DESARROLLO_IMPLEMENTACION") {
-    return "border-blue-200 bg-blue-50 text-blue-700";
-  }
-
-  if (normalizedStatus === "PRUEBAS") {
-    return "border-purple-200 bg-purple-50 text-purple-700";
-  }
-
-  if (normalizedStatus === "TRANSICION") {
-    return "border-orange-200 bg-orange-50 text-orange-700";
-  }
-
-  if (normalizedStatus === "DISENO") {
-    return "border-amber-200 bg-amber-50 text-amber-700";
-  }
-
-  return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
 function getPriorityClasses(priority: string) {
@@ -193,16 +145,13 @@ function getStoryFromRequirement(requirement: Requirement) {
 }
 
 function isClosedRequirement(requirement: Requirement) {
-  return normalizeStatus(requirement.status) === "PUESTA_EN_MARCHA";
+  return isClosedStatus(requirement.status);
 }
 
 function isCompletedRequirement(requirement: Requirement) {
-  const normalizedStatus = normalizeStatus(requirement.status);
-
   return (
     Boolean(requirement.actualEndDate) ||
-    normalizedStatus === "PUESTA_EN_MARCHA" ||
-    requirement.status === "TERMINADO" ||
+    isCompletedStatus(requirement.status) ||
     requirement.status === "COMPLETADO" ||
     requirement.status === "COMPLETED" ||
     requirement.status === "CERRADO" ||
@@ -737,7 +686,7 @@ export default function RequirementsPage() {
             </div>
 
             <div className="overflow-x-auto pb-2">
-              <div className="grid min-w-[980px] grid-cols-6 gap-3">
+              <div className="grid min-w-[1160px] grid-cols-7 gap-3">
                 {statusOptions.map((option) => {
                   const columnRequirements = getBoardRequirementsByStatus(option.value);
                   const meta = boardStyles[option.value];

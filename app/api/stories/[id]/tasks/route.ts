@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { buildRequirementFolio } from "@/lib/folios";
+import { parseWorkflowStatus } from "@/lib/statuses";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -49,11 +50,19 @@ export async function POST(
 ) {
   const { id } = await params;
   const body = await req.json();
+  const status = parseWorkflowStatus(body.status ?? "ANALISIS");
 
   if (!body.title || !body.createdById) {
     return NextResponse.json(
       { error: "Falta título o usuario creador" },
       { status: 400 }
+    );
+  }
+
+  if (!status) {
+    return NextResponse.json(
+      { error: "El estado del requerimiento no es válido" },
+      { status: 400 },
     );
   }
 
@@ -97,7 +106,7 @@ export async function POST(
       userStoryId: id,
       title: body.title,
       description: body.description || null,
-      status: body.status || "ANALISIS",
+      status,
       priority: body.priority || "MEDIA",
       assignedToId: body.assignedToId || null,
       createdById: body.createdById,

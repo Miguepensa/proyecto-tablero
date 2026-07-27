@@ -12,6 +12,12 @@ import {
   matchesQuickFilter,
   type QuickFilter,
 } from "@/lib/kpiFilters";
+import {
+  WORKFLOW_STATUS_OPTIONS as statusOptions,
+  getWorkflowStatusClasses as getStatusClasses,
+  getWorkflowStatusLabel as getStatusLabel,
+  normalizeWorkflowStatus as normalizeStoryStatus,
+} from "@/lib/statuses";
 
 type User = {
   id: string;
@@ -54,18 +60,6 @@ const priorityOptions = [
   { value: "CRITICA", label: "Crítica" },
 ];
 
-const statusOptions = [
-  { value: "ANALISIS", label: "Análisis" },
-  { value: "DISENO", label: "Diseño" },
-  {
-    value: "DESARROLLO_IMPLEMENTACION",
-    label: "Desarrollo / implementación",
-  },
-  { value: "PRUEBAS", label: "Pruebas" },
-  { value: "TRANSICION", label: "Transición" },
-  { value: "PUESTA_EN_MARCHA", label: "Puesta en marcha" },
-];
-
 function getInitialQuickFilter(): QuickFilter {
   if (typeof window === "undefined") return "TOTAL";
 
@@ -84,64 +78,11 @@ function getInitialQuickFilter(): QuickFilter {
   return "TOTAL";
 }
 
-function normalizeStoryStatus(status?: string | null) {
-  if (!status) return "ANALISIS";
-
-  if (status === "BACKLOG") return "ANALISIS";
-  if (status === "PENDIENTE") return "ANALISIS";
-  if (status === "EN_PROGRESO") return "DESARROLLO_IMPLEMENTACION";
-  if (status === "REVISION") return "PRUEBAS";
-  if (status === "BLOQUEADO") return "TRANSICION";
-  if (status === "CANCELADO") return "TRANSICION";
-  if (status === "TERMINADO") return "PUESTA_EN_MARCHA";
-
-  return status;
-}
-
-function getStatusLabel(status: string) {
-  const normalizedStatus = normalizeStoryStatus(status);
-
-  return (
-    statusOptions.find((option) => option.value === normalizedStatus)?.label ??
-    normalizedStatus
-  );
-}
-
 function getPriorityLabel(priority: string) {
   return (
     priorityOptions.find((option) => option.value === priority)?.label ??
     priority
   );
-}
-
-function getStatusClasses(status: string) {
-  const normalizedStatus = normalizeStoryStatus(status);
-
-  if (normalizedStatus === "PUESTA_EN_MARCHA") {
-    return "border-green-200 bg-green-50 text-green-700";
-  }
-
-  if (normalizedStatus === "DESARROLLO_IMPLEMENTACION") {
-    return "border-blue-200 bg-blue-50 text-blue-700";
-  }
-
-  if (normalizedStatus === "DISENO") {
-    return "border-purple-200 bg-purple-50 text-purple-700";
-  }
-
-  if (normalizedStatus === "PRUEBAS") {
-    return "border-amber-200 bg-amber-50 text-amber-700";
-  }
-
-  if (normalizedStatus === "TRANSICION") {
-    return "border-indigo-200 bg-indigo-50 text-indigo-700";
-  }
-
-  if (normalizedStatus === "ANALISIS") {
-    return "border-orange-200 bg-orange-50 text-orange-700";
-  }
-
-  return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
 function getPriorityClasses(priority: string) {

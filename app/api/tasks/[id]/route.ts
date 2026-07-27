@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { parseWorkflowStatus } from "@/lib/statuses";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -56,12 +57,24 @@ export async function PATCH(
     );
   }
 
+  const nextStatus =
+    body.status !== undefined
+      ? parseWorkflowStatus(body.status)
+      : existingTask.status;
+
+  if (!nextStatus) {
+    return NextResponse.json(
+      { error: "El estado del requerimiento no es válido" },
+      { status: 400 },
+    );
+  }
+
   const updatedTask = await prisma.storyTask.update({
     where: { id },
     data: {
       title: body.title ?? existingTask.title,
       description: body.description ?? existingTask.description,
-      status: body.status ?? existingTask.status,
+      status: nextStatus,
       priority: body.priority ?? existingTask.priority,
       assignedToId:
         body.assignedToId !== undefined
@@ -84,8 +97,10 @@ export async function PATCH(
           ? body.actualEndDate
             ? new Date(body.actualEndDate)
             : null
-          : body.status === "PUESTA_EN_MARCHA"
-            ? new Date()
+          : body.status !== undefined
+            ? nextStatus === "PUESTA_EN_MARCHA"
+              ? new Date()
+              : null
             : existingTask.actualEndDate,
     },
     include: {

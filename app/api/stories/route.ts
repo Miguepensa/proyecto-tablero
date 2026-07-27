@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { buildStoryFolio } from "@/lib/folios";
+import { parseWorkflowStatus } from "@/lib/statuses";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -20,11 +21,19 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    const status = parseWorkflowStatus(body.status ?? "ANALISIS");
 
     if (!body.title || !body.projectId || !body.createdById) {
       return NextResponse.json(
         { error: "Falta título, proyecto o usuario creador" },
         { status: 400 }
+      );
+    }
+
+    if (!status) {
+      return NextResponse.json(
+        { error: "El estado de la historia no es válido" },
+        { status: 400 },
       );
     }
 
@@ -71,7 +80,7 @@ export async function POST(req: Request) {
         title: body.title,
         description: body.description,
         priority: body.priority ?? "MEDIA",
-        status: body.status ?? "ANALISIS",
+        status,
         projectId: body.projectId,
         assignedToId: body.assignedToId,
         createdById: body.createdById,

@@ -4,6 +4,7 @@ import {
   isValidFolioPrefix,
   normalizeFolioPrefix,
 } from "@/lib/folios";
+import { parseWorkflowStatus } from "@/lib/statuses";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -26,6 +27,7 @@ export async function POST(req: Request) {
     const name = String(body.name ?? "").trim();
     const description = body.description ? String(body.description).trim() : "";
     const folioPrefix = normalizeFolioPrefix(String(body.folioPrefix ?? ""));
+    const status = parseWorkflowStatus(body.status ?? "ANALISIS");
 
     if (!name) {
       return NextResponse.json(
@@ -51,6 +53,13 @@ export async function POST(req: Request) {
       );
     }
 
+    if (!status) {
+      return NextResponse.json(
+        { error: "El estado del proyecto no es válido" },
+        { status: 400 },
+      );
+    }
+
     const latestProject = await prisma.project.findFirst({
       where: {
         folioPrefix,
@@ -73,7 +82,7 @@ export async function POST(req: Request) {
         folio,
         name,
         description,
-        status: body.status ?? "ANALISIS",
+        status,
         ownerId: body.ownerId,
         startDate: body.startDate ? new Date(body.startDate) : null,
         estimatedEndDate: body.estimatedEndDate

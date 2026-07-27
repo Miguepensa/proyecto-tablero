@@ -2,6 +2,11 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import BoardClient from "./BoardClient";
 import ProjectStoryCreateButton from "../ProjectStoryCreateButton";
+import {
+  getWorkflowStatusClasses,
+  getWorkflowStatusLabel,
+  normalizeWorkflowStatus,
+} from "@/lib/statuses";
 
 type Project = {
   id: string;
@@ -100,82 +105,23 @@ function formatDate(date?: string | null) {
 }
 
 function normalizeStoryStatus(status?: string) {
-  const legacyStatusMap: Record<string, string> = {
-    BACKLOG: "ANALISIS",
-    PENDIENTE: "DISENO",
-    EN_PROGRESO: "DESARROLLO_IMPLEMENTACION",
-    REVISION: "PRUEBAS",
-    TERMINADO: "PUESTA_EN_MARCHA",
-  };
-
-  if (!status) return "";
-
-  return legacyStatusMap[status] || status;
+  return normalizeWorkflowStatus(status);
 }
 
 function getProjectStatusLabel(status?: string) {
-  if (status === "TERMINADO") return "Completado";
-  if (status === "EN_PROGRESO") return "En progreso";
-  if (status === "BLOQUEADO") return "Retrasado";
-  if (status === "PENDIENTE") return "Planeado";
-  return status || "Sin estado";
+  return getWorkflowStatusLabel(status);
 }
 
 function getProjectStatusClasses(status?: string) {
-  if (status === "TERMINADO") {
-    return "border-green-200 bg-green-50 text-green-700";
-  }
-
-  if (status === "EN_PROGRESO") {
-    return "border-blue-200 bg-blue-50 text-blue-700";
-  }
-
-  if (status === "BLOQUEADO") {
-    return "border-red-200 bg-red-50 text-red-700";
-  }
-
-  return "border-slate-200 bg-slate-50 text-slate-700";
+  return getWorkflowStatusClasses(status);
 }
 
 function getStoryStatusLabel(status?: string) {
-  const normalizedStatus = normalizeStoryStatus(status);
-
-  if (normalizedStatus === "ANALISIS") return "Analisis";
-  if (normalizedStatus === "DISENO") return "diseño";
-  if (normalizedStatus === "DESARROLLO_IMPLEMENTACION") {
-    return "Desarrollo / implementación";
-  }
-  if (normalizedStatus === "PRUEBAS") return "Pruebas";
-  if (normalizedStatus === "TRANSICION") return "transición";
-  if (normalizedStatus === "PUESTA_EN_MARCHA") return "puesta en marcha";
-
-  return status || "Sin estado";
+  return getWorkflowStatusLabel(status);
 }
 
 function getStoryStatusClasses(status?: string) {
-  const normalizedStatus = normalizeStoryStatus(status);
-
-  if (normalizedStatus === "PUESTA_EN_MARCHA") {
-    return "border-green-200 bg-green-50 text-green-700";
-  }
-
-  if (normalizedStatus === "DESARROLLO_IMPLEMENTACION") {
-    return "border-blue-200 bg-blue-50 text-blue-700";
-  }
-
-  if (normalizedStatus === "PRUEBAS") {
-    return "border-purple-200 bg-purple-50 text-purple-700";
-  }
-
-  if (normalizedStatus === "TRANSICION") {
-    return "border-amber-200 bg-amber-50 text-amber-700";
-  }
-
-  if (normalizedStatus === "DISENO") {
-    return "border-orange-200 bg-orange-50 text-orange-700";
-  }
-
-  return "border-slate-200 bg-slate-50 text-slate-700";
+  return getWorkflowStatusClasses(status);
 }
 
 function getPriorityClasses(priority?: string) {

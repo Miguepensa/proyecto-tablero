@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
+import { WORKFLOW_STATUS_OPTIONS as statusOptions } from "@/lib/statuses";
 
 type User = {
   id: string;
@@ -27,18 +28,6 @@ const priorityOptions = [
   { value: "MEDIA", label: "Media" },
   { value: "ALTA", label: "Alta" },
   { value: "CRITICA", label: "Crítica" },
-];
-
-const statusOptions = [
-  { value: "ANALISIS", label: "Análisis" },
-  { value: "DISENO", label: "Diseño" },
-  {
-    value: "DESARROLLO_IMPLEMENTACION",
-    label: "Desarrollo / implementación",
-  },
-  { value: "PRUEBAS", label: "Pruebas" },
-  { value: "TRANSICION", label: "Transición" },
-  { value: "PUESTA_EN_MARCHA", label: "Puesta en marcha" },
 ];
 
 export default function ProjectStoryCreateButton({ project, users, className }: Props) {

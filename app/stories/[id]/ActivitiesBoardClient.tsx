@@ -1,6 +1,11 @@
 "use client";
 
 import { useMemo, useState, type FormEvent } from "react";
+import {
+  WORKFLOW_STATUS_OPTIONS as statusOptions,
+  getWorkflowStatusLabel,
+  normalizeWorkflowStatus as normalizeActivityStatus,
+} from "@/lib/statuses";
 
 type User = {
   id: string;
@@ -84,18 +89,12 @@ const columns = [
     description: "Liberación y cierre",
     dot: "bg-green-500",
   },
-];
-
-const statusOptions = [
-  { value: "ANALISIS", label: "Análisis" },
-  { value: "DISENO", label: "Diseño" },
   {
-    value: "DESARROLLO_IMPLEMENTACION",
-    label: "Desarrollo / implementación",
+    value: "CANCELADO",
+    title: "Cancelado",
+    description: "Requerimientos cancelados",
+    dot: "bg-red-500",
   },
-  { value: "PRUEBAS", label: "Pruebas" },
-  { value: "TRANSICION", label: "Transición" },
-  { value: "PUESTA_EN_MARCHA", label: "Puesta en marcha" },
 ];
 
 const priorityOptions = [
@@ -115,20 +114,6 @@ const emptyForm = {
   estimatedEndDate: "",
 };
 
-function normalizeActivityStatus(status?: string | null) {
-  if (!status) return "ANALISIS";
-
-  if (status === "BACKLOG") return "ANALISIS";
-  if (status === "PENDIENTE") return "ANALISIS";
-  if (status === "EN_PROGRESO") return "DESARROLLO_IMPLEMENTACION";
-  if (status === "BLOQUEADO") return "DESARROLLO_IMPLEMENTACION";
-  if (status === "REVISION") return "PRUEBAS";
-  if (status === "TERMINADO") return "PUESTA_EN_MARCHA";
-  if (status === "CANCELADO") return "TRANSICION";
-
-  return status;
-}
-
 function formatDateForInput(date?: string | null) {
   if (!date) return "";
 
@@ -142,12 +127,7 @@ function formatDateForInput(date?: string | null) {
 }
 
 function getStatusLabel(status: string) {
-  const normalizedStatus = normalizeActivityStatus(status);
-
-  return (
-    statusOptions.find((option) => option.value === normalizedStatus)?.label ??
-    "Sin estatus"
-  );
+  return getWorkflowStatusLabel(status);
 }
 
 function getPriorityLabel(priority: string) {
@@ -410,7 +390,7 @@ export default function ActivitiesBoardClient({ initialStory, users }: Props) {
         </div>
 
         <div className="overflow-x-auto pb-2">
-          <div className="grid min-w-[1500px] grid-cols-6 gap-4">
+          <div className="grid min-w-[1740px] grid-cols-7 gap-4">
             {activitiesByStatus.map((column) => (
               <section
                 key={column.value}

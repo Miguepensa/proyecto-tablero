@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { WORKFLOW_STATUS_OPTIONS as statusOptions } from "@/lib/statuses";
 
 type User = {
   id: string;
@@ -21,18 +22,6 @@ type Props = {
   className?: string;
   onCreated?: () => void | Promise<void>;
 };
-
-const statusOptions = [
-  { value: "ANALISIS", label: "Análisis" },
-  { value: "DISENO", label: "Diseño" },
-  {
-    value: "DESARROLLO_IMPLEMENTACION",
-    label: "Desarrollo / implementación",
-  },
-  { value: "PRUEBAS", label: "Pruebas" },
-  { value: "TRANSICION", label: "Transición" },
-  { value: "PUESTA_EN_MARCHA", label: "Puesta en marcha" },
-];
 
 const priorityOptions = [
   { value: "BAJA", label: "Baja" },

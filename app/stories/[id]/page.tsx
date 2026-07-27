@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import ActivitiesBoardClient from "./ActivitiesBoardClient";
+import {
+  getWorkflowStatusClasses,
+  getWorkflowStatusLabel,
+  normalizeWorkflowStatus as normalizeStatus,
+} from "@/lib/statuses";
 
 type User = {
   id: string;
@@ -51,42 +56,12 @@ type Story = {
   }[];
 };
 
-const storyStatusLabels: Record<string, string> = {
-  BACKLOG: "Análisis",
-  PENDIENTE: "Análisis",
-  ANALISIS: "Análisis",
-  DISENO: "Diseño",
-  EN_PROGRESO: "Desarrollo / implementación",
-  BLOQUEADO: "Desarrollo / implementación",
-  DESARROLLO_IMPLEMENTACION: "Desarrollo / implementación",
-  REVISION: "Pruebas",
-  PRUEBAS: "Pruebas",
-  CANCELADO: "Transición",
-  TRANSICION: "Transición",
-  TERMINADO: "Puesta en marcha",
-  PUESTA_EN_MARCHA: "Puesta en marcha",
-};
-
 const priorityLabels: Record<string, string> = {
   BAJA: "Baja",
   MEDIA: "Media",
   ALTA: "Alta",
   CRITICA: "Crítica",
 };
-
-function normalizeStatus(status?: string | null) {
-  if (!status) return "ANALISIS";
-
-  if (status === "BACKLOG") return "ANALISIS";
-  if (status === "PENDIENTE") return "ANALISIS";
-  if (status === "EN_PROGRESO") return "DESARROLLO_IMPLEMENTACION";
-  if (status === "BLOQUEADO") return "DESARROLLO_IMPLEMENTACION";
-  if (status === "REVISION") return "PRUEBAS";
-  if (status === "TERMINADO") return "PUESTA_EN_MARCHA";
-  if (status === "CANCELADO") return "TRANSICION";
-
-  return status;
-}
 
 function formatDate(date?: string | null) {
   if (!date) return "Sin fecha";
@@ -121,29 +96,7 @@ function getPriorityClasses(priority?: string | null) {
 }
 
 function getStatusClasses(status?: string | null) {
-  const normalizedStatus = normalizeStatus(status);
-
-  if (normalizedStatus === "PUESTA_EN_MARCHA") {
-    return "border-green-200 bg-green-50 text-green-700";
-  }
-
-  if (normalizedStatus === "DESARROLLO_IMPLEMENTACION") {
-    return "border-blue-200 bg-blue-50 text-blue-700";
-  }
-
-  if (normalizedStatus === "PRUEBAS") {
-    return "border-amber-200 bg-amber-50 text-amber-700";
-  }
-
-  if (normalizedStatus === "DISENO") {
-    return "border-purple-200 bg-purple-50 text-purple-700";
-  }
-
-  if (normalizedStatus === "TRANSICION") {
-    return "border-cyan-200 bg-cyan-50 text-cyan-700";
-  }
-
-  return "border-orange-200 bg-orange-50 text-orange-700";
+  return getWorkflowStatusClasses(status);
 }
 
 function Sidebar() {
@@ -260,7 +213,7 @@ function StatusBadge({ status }: { status?: string | null }) {
         status
       )}`}
     >
-      {storyStatusLabels[normalizedStatus] ?? status ?? "Sin estado"}
+      {getWorkflowStatusLabel(normalizedStatus)}
     </span>
   );
 }

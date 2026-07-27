@@ -66,6 +66,8 @@ export function isOpenItem(item: FilterableItem) {
 }
 
 export function isBlockedItem(item: FilterableItem) {
+  if (isClosedItem(item)) return false;
+
   return normalizeStatus(item.status) === "BLOQUEADO" || item.blocked === true;
 }
 

@@ -5,6 +5,14 @@ import { useEffect, useMemo, useState } from "react";
 import ProjectStoryCreateButton from "./ProjectStoryCreateButton";
 import KpiFilterCard from "@/components/KpiFilterCard";
 import type { QuickFilter } from "@/lib/kpiFilters";
+import {
+  WORKFLOW_STATUS_OPTIONS as statusOptions,
+  getWorkflowStatusClasses as getStatusClasses,
+  getWorkflowStatusLabel as getStatusLabel,
+  isClosedStatus,
+  isCompletedStatus,
+  normalizeWorkflowStatus as normalizeProjectStatus,
+} from "@/lib/statuses";
 
 type User = {
   id: string;
@@ -32,66 +40,8 @@ type Project = {
   };
 };
 
-const statusOptions = [
-  { value: "ANALISIS", label: "Análisis" },
-  { value: "DISENO", label: "Diseño" },
-  {
-    value: "DESARROLLO_IMPLEMENTACION",
-    label: "Desarrollo / implementación",
-  },
-  { value: "PRUEBAS", label: "Pruebas" },
-  { value: "TRANSICION", label: "Transición" },
-  { value: "PUESTA_EN_MARCHA", label: "Puesta en marcha" },
-];
-
-function normalizeProjectStatus(status?: string | null) {
-  if (!status) return "ANALISIS";
-
-  if (status === "PENDIENTE") return "ANALISIS";
-  if (status === "EN_PROGRESO") return "DESARROLLO_IMPLEMENTACION";
-  if (status === "BLOQUEADO") return "TRANSICION";
-  if (status === "CANCELADO") return "TRANSICION";
-  if (status === "TERMINADO") return "PUESTA_EN_MARCHA";
-
-  return status;
-}
-
 function normalizeFolioPrefixInput(value: string) {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 3);
-}
-
-function getStatusLabel(status: string) {
-  const normalizedStatus = normalizeProjectStatus(status);
-  return (
-    statusOptions.find((option) => option.value === normalizedStatus)?.label ??
-    status
-  );
-}
-
-function getStatusClasses(status: string) {
-  const normalizedStatus = normalizeProjectStatus(status);
-
-  if (normalizedStatus === "PUESTA_EN_MARCHA") {
-    return "border-green-200 bg-green-50 text-green-700";
-  }
-
-  if (normalizedStatus === "DESARROLLO_IMPLEMENTACION") {
-    return "border-blue-200 bg-blue-50 text-blue-700";
-  }
-
-  if (normalizedStatus === "PRUEBAS") {
-    return "border-purple-200 bg-purple-50 text-purple-700";
-  }
-
-  if (normalizedStatus === "TRANSICION") {
-    return "border-orange-200 bg-orange-50 text-orange-700";
-  }
-
-  if (normalizedStatus === "DISENO") {
-    return "border-amber-200 bg-amber-50 text-amber-700";
-  }
-
-  return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
 function formatDate(date?: string | null) {
@@ -205,22 +155,13 @@ function Sidebar() {
 
 
 function isProjectClosed(project: Project) {
-  const normalizedStatus = normalizeProjectStatus(project.status);
-
-  return (
-    normalizedStatus === "PUESTA_EN_MARCHA" ||
-    project.status === "TERMINADO" ||
-    project.status === "CANCELADO"
-  );
+  return isClosedStatus(project.status);
 }
 
 function isProjectCompleted(project: Project) {
-  const normalizedStatus = normalizeProjectStatus(project.status);
-
   return (
     Boolean(project.actualEndDate) ||
-    normalizedStatus === "PUESTA_EN_MARCHA" ||
-    project.status === "TERMINADO" ||
+    isCompletedStatus(project.status) ||
     project.status === "COMPLETADO" ||
     project.status === "COMPLETED" ||
     project.status === "CERRADO" ||
@@ -233,6 +174,8 @@ function isProjectOpen(project: Project) {
 }
 
 function isProjectBlocked(project: Project) {
+  if (isProjectClosed(project)) return false;
+
   return project.status === "BLOQUEADO" || project.blocked === true;
 }
 

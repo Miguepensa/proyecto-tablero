@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { getWorkflowStatusLabel } from "@/lib/statuses";
 
 async function getLogs() {
   const res = await fetch("https://proyecto-tablero.vercel.app/api/audit-logs", {
@@ -152,14 +153,7 @@ function getEntityClasses(entityType?: string) {
 }
 
 function getStatusLabel(status?: string) {
-  if (!status) return "Sin estado";
-  if (status === "BACKLOG") return "Backlog";
-  if (status === "PENDIENTE") return "Pendiente";
-  if (status === "EN_PROGRESO") return "En progreso";
-  if (status === "REVISION") return "Revisión";
-  if (status === "TERMINADO") return "Terminado";
-  if (status === "BLOQUEADO") return "Bloqueado";
-  return status;
+  return status ? getWorkflowStatusLabel(status) : "Sin estado";
 }
 
 function formatDate(date?: string) {

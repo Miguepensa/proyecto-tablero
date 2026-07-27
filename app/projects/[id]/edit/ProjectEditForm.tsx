@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
+import {
+  WORKFLOW_STATUS_OPTIONS,
+  normalizeWorkflowStatus,
+  parseWorkflowStatus,
+} from "@/lib/statuses";
 
 type Project = {
   id: string;
@@ -78,7 +83,9 @@ export default function ProjectEditForm({
 
   const [name, setName] = useState(project.name || "");
   const [description, setDescription] = useState(project.description || "");
-  const [status, setStatus] = useState(project.status || "PENDIENTE");
+  const [status, setStatus] = useState(
+    normalizeWorkflowStatus(project.status),
+  );
 
   const [ownerId, setOwnerId] = useState(
     project.ownerId || project.owner?.id || ""
@@ -189,13 +196,18 @@ export default function ProjectEditForm({
 
             <select
               value={status}
-              onChange={(event) => setStatus(event.target.value)}
+              onChange={(event) =>
+                setStatus(
+                  parseWorkflowStatus(event.target.value) ?? "ANALISIS",
+                )
+              }
               className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
             >
-              <option value="PENDIENTE">Planeado</option>
-              <option value="EN_PROGRESO">En progreso</option>
-              <option value="BLOQUEADO">Retrasado / Bloqueado</option>
-              <option value="TERMINADO">Completado</option>
+              {WORKFLOW_STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
 

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { buildRequirementFolio, buildStoryFolio } from "@/lib/folios";
+import { parseWorkflowStatus } from "@/lib/statuses";
 import { NextResponse } from "next/server";
 
 function hasField(body: Record<string, unknown>, field: string) {
@@ -219,13 +220,24 @@ export async function PATCH(
     }
 
     if (hasField(body, "status")) {
-      updateData.status = body.status;
+      const status = parseWorkflowStatus(body.status);
+
+      if (!status) {
+        return NextResponse.json(
+          { error: "El estado de la historia no es válido" },
+          { status: 400 },
+        );
+      }
+
+      updateData.status = status;
 
       if (
-        body.status === "PUESTA_EN_MARCHA" &&
+        status === "PUESTA_EN_MARCHA" &&
         !hasField(body, "actualEndDate")
       ) {
         updateData.actualEndDate = new Date();
+      } else if (!hasField(body, "actualEndDate")) {
+        updateData.actualEndDate = null;
       }
     }
 
