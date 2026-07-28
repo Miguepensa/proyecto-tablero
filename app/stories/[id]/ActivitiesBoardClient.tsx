@@ -424,6 +424,7 @@ export default function ActivitiesBoardClient({ initialStory, users }: Props) {
                     column.activities.map((activity) => (
                       <article
                         key={activity.id}
+                        id={`requirement-${activity.id}`}
                         className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                       >
                         {editingActivityId === activity.id ? (
