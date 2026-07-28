@@ -16,6 +16,13 @@ type Project = {
     name?: string | null;
     email?: string | null;
   } | null;
+  responsibles?: Array<{
+    user: {
+      id: string;
+      name?: string | null;
+      email?: string | null;
+    };
+  }>;
 };
 
 type User = {

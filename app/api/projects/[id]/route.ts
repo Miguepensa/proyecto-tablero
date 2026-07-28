@@ -1,6 +1,19 @@
 import { prisma } from "@/lib/prisma";
 import { parseWorkflowStatus } from "@/lib/statuses";
+import { normalizeResponsibleIds } from "@/lib/projectResponsibles";
 import { NextResponse } from "next/server";
+
+const projectInclude = {
+  owner: true,
+  responsibles: {
+    include: {
+      user: true,
+    },
+    orderBy: {
+      createdAt: "asc" as const,
+    },
+  },
+};
 
 function parseDate(value: string | null | undefined) {
   if (!value) return null;
@@ -27,9 +40,7 @@ export async function GET(
 
     const project = await prisma.project.findUnique({
       where: { id },
-      include: {
-        owner: true,
-      },
+      include: projectInclude,
     });
 
     if (!project) {
@@ -60,9 +71,7 @@ export async function PATCH(
 
     const existingProject = await prisma.project.findUnique({
       where: { id },
-      include: {
-        owner: true,
-      },
+      include: projectInclude,
     });
 
     if (!existingProject) {
@@ -76,12 +85,14 @@ export async function PATCH(
       hasField(body, "name") ||
       hasField(body, "description") ||
       hasField(body, "ownerId") ||
+      hasField(body, "responsibleIds") ||
       hasField(body, "startDate") ||
       hasField(body, "estimatedEndDate") ||
       hasField(body, "actualEndDate");
 
     const updateData: any = {};
     let requestedStatus: ReturnType<typeof parseWorkflowStatus> = null;
+    let responsibleIds: string[] | null = null;
 
     if (hasField(body, "status")) {
       requestedStatus = parseWorkflowStatus(body.status);
@@ -128,7 +139,34 @@ export async function PATCH(
         ? String(body.description).trim()
         : "";
 
-      updateData.ownerId = body.ownerId ? String(body.ownerId) : null;
+      responsibleIds = normalizeResponsibleIds(
+        body.responsibleIds,
+        body.ownerId ?? existingProject.ownerId,
+      );
+
+      if (responsibleIds.length === 0) {
+        return NextResponse.json(
+          { error: "Selecciona al menos un responsable del proyecto" },
+          { status: 400 },
+        );
+      }
+
+      const existingResponsibleCount = await prisma.user.count({
+        where: {
+          id: {
+            in: responsibleIds,
+          },
+        },
+      });
+
+      if (existingResponsibleCount !== responsibleIds.length) {
+        return NextResponse.json(
+          { error: "Uno o más responsables seleccionados no existen" },
+          { status: 400 },
+        );
+      }
+
+      updateData.ownerId = responsibleIds[0];
       updateData.startDate = parseDate(body.startDate);
       updateData.estimatedEndDate = parseDate(body.estimatedEndDate);
       updateData.actualEndDate = parseDate(body.actualEndDate);
@@ -139,12 +177,27 @@ export async function PATCH(
       updateData.actualEndDate = existingProject.actualEndDate;
     }
 
-    const updatedProject = await prisma.project.update({
-      where: { id },
-      data: updateData,
-      include: {
-        owner: true,
-      },
+    const updatedProject = await prisma.$transaction(async (tx) => {
+      if (responsibleIds) {
+        await tx.projectResponsible.deleteMany({
+          where: {
+            projectId: id,
+          },
+        });
+
+        await tx.projectResponsible.createMany({
+          data: responsibleIds.map((userId) => ({
+            projectId: id,
+            userId,
+          })),
+        });
+      }
+
+      return tx.project.update({
+        where: { id },
+        data: updateData,
+        include: projectInclude,
+      });
     });
 
     await prisma.auditLog.create({
@@ -165,6 +218,9 @@ export async function PATCH(
           description: existingProject.description,
           status: existingProject.status,
           ownerId: existingProject.ownerId,
+          responsibleIds: existingProject.responsibles.map(
+            (responsible) => responsible.userId,
+          ),
           startDate: existingProject.startDate,
           estimatedEndDate: existingProject.estimatedEndDate,
           actualEndDate: existingProject.actualEndDate,
@@ -181,6 +237,9 @@ export async function PATCH(
           description: updatedProject.description,
           status: updatedProject.status,
           ownerId: updatedProject.ownerId,
+          responsibleIds: updatedProject.responsibles.map(
+            (responsible) => responsible.userId,
+          ),
           startDate: updatedProject.startDate,
           estimatedEndDate: updatedProject.estimatedEndDate,
           actualEndDate: updatedProject.actualEndDate,

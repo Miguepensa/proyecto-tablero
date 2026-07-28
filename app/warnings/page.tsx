@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
+import { getProjectResponsibleNames } from "@/lib/projectResponsibles";
 import {
   getWorkflowStatusClasses,
   getWorkflowStatusLabel,
@@ -144,7 +145,14 @@ export default async function WarningsPage({
         estimatedEndDate: { gte: projectRange.start, lt: projectRange.endExclusive },
         status: { notIn: [...CLOSED_STATUSES] },
       },
-      include: { owner: true },
+      include: {
+        owner: true,
+        responsibles: {
+          include: {
+            user: true,
+          },
+        },
+      },
       orderBy: { estimatedEndDate: "asc" },
     }),
     prisma.userStory.findMany({
@@ -248,7 +256,7 @@ export default async function WarningsPage({
                               <h3 className="mt-3 text-lg font-bold text-slate-950">{project.name}</h3>
                             </div>
                             <div className="grid flex-1 gap-4 sm:grid-cols-3 xl:max-w-2xl">
-                              <Detail label="Responsable">{project.owner?.name || "Sin responsable"}</Detail>
+                              <Detail label="Responsables">{getProjectResponsibleNames(project)}</Detail>
                               <Detail label="Estado"><StatusBadge status={project.status} /></Detail>
                               <Detail label="Fecha límite">{formatDate(project.estimatedEndDate!)}</Detail>
                             </div>

@@ -5,13 +5,24 @@ import {
   normalizeFolioPrefix,
 } from "@/lib/folios";
 import { parseWorkflowStatus } from "@/lib/statuses";
+import { normalizeResponsibleIds } from "@/lib/projectResponsibles";
 import { NextResponse } from "next/server";
+
+const projectInclude = {
+  owner: true,
+  responsibles: {
+    include: {
+      user: true,
+    },
+    orderBy: {
+      createdAt: "asc" as const,
+    },
+  },
+};
 
 export async function GET() {
   const projects = await prisma.project.findMany({
-    include: {
-      owner: true,
-    },
+    include: projectInclude,
     orderBy: {
       createdAt: "desc",
     },
@@ -28,6 +39,10 @@ export async function POST(req: Request) {
     const description = body.description ? String(body.description).trim() : "";
     const folioPrefix = normalizeFolioPrefix(String(body.folioPrefix ?? ""));
     const status = parseWorkflowStatus(body.status ?? "ANALISIS");
+    const responsibleIds = normalizeResponsibleIds(
+      body.responsibleIds,
+      body.ownerId,
+    );
 
     if (!name) {
       return NextResponse.json(
@@ -46,9 +61,9 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!body.ownerId) {
+    if (responsibleIds.length === 0) {
       return NextResponse.json(
-        { error: "El responsable del proyecto es obligatorio" },
+        { error: "Selecciona al menos un responsable del proyecto" },
         { status: 400 }
       );
     }
@@ -56,6 +71,21 @@ export async function POST(req: Request) {
     if (!status) {
       return NextResponse.json(
         { error: "El estado del proyecto no es válido" },
+        { status: 400 },
+      );
+    }
+
+    const existingResponsibleCount = await prisma.user.count({
+      where: {
+        id: {
+          in: responsibleIds,
+        },
+      },
+    });
+
+    if (existingResponsibleCount !== responsibleIds.length) {
+      return NextResponse.json(
+        { error: "Uno o más responsables seleccionados no existen" },
         { status: 400 },
       );
     }
@@ -83,16 +113,19 @@ export async function POST(req: Request) {
         name,
         description,
         status,
-        ownerId: body.ownerId,
+        ownerId: responsibleIds[0],
+        responsibles: {
+          create: responsibleIds.map((userId) => ({
+            userId,
+          })),
+        },
         startDate: body.startDate ? new Date(body.startDate) : null,
         estimatedEndDate: body.estimatedEndDate
           ? new Date(body.estimatedEndDate)
           : null,
         actualEndDate: body.actualEndDate ? new Date(body.actualEndDate) : null,
       },
-      include: {
-        owner: true,
-      },
+      include: projectInclude,
     });
 
     return NextResponse.json(project, { status: 201 });

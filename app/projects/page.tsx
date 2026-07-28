@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import ProjectStoryCreateButton from "./ProjectStoryCreateButton";
 import KpiFilterCard from "@/components/KpiFilterCard";
 import type { QuickFilter } from "@/lib/kpiFilters";
+import { getProjectResponsibleNames } from "@/lib/projectResponsibles";
 import {
   WORKFLOW_STATUS_OPTIONS as statusOptions,
   getWorkflowStatusClasses as getStatusClasses,
@@ -36,8 +37,16 @@ type Project = {
   blockedReason?: string | null;
   blockedAt?: string | null;
   owner?: {
+    id?: string;
     name: string;
   };
+  responsibles?: Array<{
+    user: {
+      id: string;
+      name: string;
+      email?: string | null;
+    };
+  }>;
 };
 
 function normalizeFolioPrefixInput(value: string) {
@@ -218,7 +227,7 @@ export default function ProjectsPage() {
   const [folioPrefix, setFolioPrefix] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("ANALISIS");
-  const [ownerId, setOwnerId] = useState("");
+  const [responsibleIds, setResponsibleIds] = useState<string[]>([]);
   const [startDate, setStartDate] = useState("");
   const [estimatedEndDate, setEstimatedEndDate] = useState("");
   const [actualEndDate, setActualEndDate] = useState("");
@@ -253,9 +262,11 @@ export default function ProjectsPage() {
     const data = await res.json();
     setUsers(data);
 
-    if (data.length > 0 && !ownerId) {
-      setOwnerId(data[0].id);
-    }
+    setResponsibleIds((currentIds) =>
+      currentIds.length > 0 || data.length === 0
+        ? currentIds
+        : [data[0].id],
+    );
   }
 
   async function changeProjectStatus(projectId: string, newStatus: string) {
@@ -390,7 +401,7 @@ export default function ProjectsPage() {
         (project.folioPrefix ?? "").toLowerCase().includes(text) ||
         (project.description ?? "").toLowerCase().includes(text) ||
         (project.blockedReason ?? "").toLowerCase().includes(text) ||
-        (project.owner?.name ?? "").toLowerCase().includes(text);
+        getProjectResponsibleNames(project).toLowerCase().includes(text);
 
       const matchesStatus =
         statusFilter === "TODOS" ||
@@ -413,6 +424,7 @@ export default function ProjectsPage() {
     setFolioPrefix("");
     setDescription("");
     setStatus("ANALISIS");
+    setResponsibleIds(users[0]?.id ? [users[0].id] : []);
     setStartDate("");
     setEstimatedEndDate("");
     setActualEndDate("");
@@ -423,6 +435,11 @@ export default function ProjectsPage() {
 
     if (folioPrefix.length !== 3) {
       alert("La clave de folio debe tener exactamente 3 caracteres.");
+      return;
+    }
+
+    if (responsibleIds.length === 0) {
+      alert("Selecciona al menos un responsable del proyecto.");
       return;
     }
 
@@ -438,7 +455,8 @@ export default function ProjectsPage() {
         folioPrefix,
         description,
         status,
-        ownerId,
+        ownerId: responsibleIds[0],
+        responsibleIds,
         startDate: startDate || null,
         estimatedEndDate: estimatedEndDate || null,
         actualEndDate: actualEndDate || null,
@@ -667,9 +685,9 @@ export default function ProjectsPage() {
 
                     <div className="grid gap-2 rounded-2xl bg-slate-50 p-3 text-xs">
                       <div className="flex items-center justify-between gap-4">
-                        <span className="text-slate-500">Responsable</span>
+                        <span className="text-slate-500">Responsables</span>
                         <strong className="text-right text-slate-950">
-                          {project.owner?.name || "Sin responsable"}
+                          {getProjectResponsibleNames(project)}
                         </strong>
                       </div>
 
@@ -946,24 +964,44 @@ export default function ProjectsPage() {
               </label>
 
               <div className="grid gap-5 md:grid-cols-2">
-                <label>
-                  <span className="mb-2 block text-sm font-bold text-slate-700">
-                    Responsable
-                  </span>
-                  <select
-                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    value={ownerId}
-                    onChange={(e) => setOwnerId(e.target.value)}
-                    required
-                  >
-                    <option value="">Seleccionar responsable</option>
-                    {users.map((user) => (
-                      <option key={user.id} value={user.id}>
-                        {user.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <fieldset>
+                  <legend className="mb-2 block text-sm font-bold text-slate-700">
+                    Responsables
+                  </legend>
+                  <div className="max-h-48 space-y-2 overflow-y-auto rounded-2xl border border-slate-200 p-3">
+                    {users.length > 0 ? (
+                      users.map((user) => (
+                        <label
+                          key={user.id}
+                          className="flex cursor-pointer items-center gap-3 rounded-xl px-2 py-2 hover:bg-slate-50"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={responsibleIds.includes(user.id)}
+                            onChange={(event) =>
+                              setResponsibleIds((currentIds) =>
+                                event.target.checked
+                                  ? [...currentIds, user.id]
+                                  : currentIds.filter((id) => id !== user.id),
+                              )
+                            }
+                            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-slate-800">
+                            {user.name}
+                          </span>
+                        </label>
+                      ))
+                    ) : (
+                      <p className="px-2 py-2 text-sm text-slate-500">
+                        No hay usuarios disponibles.
+                      </p>
+                    )}
+                  </div>
+                  <p className="mt-2 text-xs text-slate-500">
+                    Selecciona uno o varios. El primero será el responsable principal.
+                  </p>
+                </fieldset>
 
                 <label>
                   <span className="mb-2 block text-sm font-bold text-slate-700">

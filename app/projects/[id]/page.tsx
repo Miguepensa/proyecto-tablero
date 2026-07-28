@@ -7,6 +7,7 @@ import {
   getWorkflowStatusLabel,
   normalizeWorkflowStatus,
 } from "@/lib/statuses";
+import { getProjectResponsibleNames } from "@/lib/projectResponsibles";
 
 type Project = {
   id: string;
@@ -20,8 +21,16 @@ type Project = {
   blockedReason?: string | null;
   blockedAt?: string | null;
   owner?: {
+    id?: string;
     name: string;
   };
+  responsibles?: Array<{
+    user: {
+      id: string;
+      name: string;
+      email?: string | null;
+    };
+  }>;
 };
 
 type User = {
@@ -412,8 +421,8 @@ export default async function ProjectBoardPage({
 
             <div className="grid gap-4 md:grid-cols-3">
               <SummaryBox
-                label="Responsable"
-                value={project.owner?.name || "Sin responsable"}
+                label="Responsables"
+                value={getProjectResponsibleNames(project)}
               />
 
               <SummaryBox

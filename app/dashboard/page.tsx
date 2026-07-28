@@ -6,6 +6,7 @@ import {
   isClosedStatus,
   parseWorkflowStatus,
 } from "@/lib/statuses";
+import { getProjectResponsibleNames } from "@/lib/projectResponsibles";
 
 type User = {
   id: string;
@@ -28,8 +29,16 @@ type Project = {
   blockedReason?: string | null;
   blockedAt?: string | null;
   owner?: {
+    id?: string | null;
     name?: string | null;
   } | null;
+  responsibles?: Array<{
+    user?: {
+      id?: string | null;
+      name?: string | null;
+      email?: string | null;
+    } | null;
+  }> | null;
 };
 
 type Story = {
@@ -612,7 +621,7 @@ function RecentProjectRows({ projects }: { projects: Project[] }) {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="truncate text-sm font-black text-slate-950">{project.name ?? "Sin nombre"}</p>
-              <p className="mt-1 truncate text-xs text-slate-500">{project.owner?.name || "Sin responsable"}</p>
+              <p className="mt-1 truncate text-xs text-slate-500">{getProjectResponsibleNames(project)}</p>
             </div>
             <StatusPill label={statusLabel(project.status)} tone={statusTone(project.status)} />
           </div>

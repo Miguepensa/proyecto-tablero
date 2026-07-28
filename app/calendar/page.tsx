@@ -4,6 +4,7 @@ import {
   getWorkflowStatusLabel as getStatusLabel,
   isClosedStatus,
 } from "@/lib/statuses";
+import { getProjectResponsibleNames } from "@/lib/projectResponsibles";
 
 async function getProjects() {
   const res = await fetch("https://proyecto-tablero.vercel.app/api/projects", {
@@ -191,7 +192,7 @@ export default async function CalendarPage() {
         name: project.name,
         date: project.startDate,
         status: project.status,
-        person: project.owner?.name ?? "Sin responsable",
+        person: getProjectResponsibleNames(project),
         link: `/projects/${project.id}`,
       });
     }
@@ -203,7 +204,7 @@ export default async function CalendarPage() {
         name: project.name,
         date: project.estimatedEndDate,
         status: project.status,
-        person: project.owner?.name ?? "Sin responsable",
+        person: getProjectResponsibleNames(project),
         link: `/projects/${project.id}`,
       });
     }
@@ -215,7 +216,7 @@ export default async function CalendarPage() {
         name: project.name,
         date: project.actualEndDate,
         status: project.status,
-        person: project.owner?.name ?? "Sin responsable",
+        person: getProjectResponsibleNames(project),
         link: `/projects/${project.id}`,
       });
     }
@@ -403,7 +404,7 @@ export default async function CalendarPage() {
                           </h3>
 
                           <p className="mt-2 text-sm text-slate-500">
-                            Responsable:{" "}
+                            Responsable(s):{" "}
                             <span className="font-bold text-slate-700">
                               {item.person}
                             </span>

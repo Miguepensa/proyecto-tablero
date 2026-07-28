@@ -75,6 +75,7 @@ model User {
   updatedAt       DateTime    @updatedAt
 
   ownedProjects   Project[]   @relation("ProjectOwner")
+  projectResponsibilities ProjectResponsible[]
   assignedStories UserStory[] @relation("StoryAssignedTo")
   createdStories  UserStory[] @relation("StoryCreatedBy")
 
@@ -104,7 +105,21 @@ model Project {
   updatedAt        DateTime      @updatedAt
 
   owner            User          @relation("ProjectOwner", fields: [ownerId], references: [id])
+  responsibles     ProjectResponsible[]
   stories          UserStory[]
+}
+
+model ProjectResponsible {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([projectId, userId])
+  @@index([userId])
 }
 
 model UserStory {

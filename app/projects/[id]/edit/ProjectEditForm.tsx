@@ -23,6 +23,13 @@ type Project = {
     name?: string | null;
     email?: string | null;
   } | null;
+  responsibles?: Array<{
+    user: {
+      id: string;
+      name?: string | null;
+      email?: string | null;
+    };
+  }>;
 };
 
 type User = {
@@ -78,8 +85,14 @@ export default function ProjectEditForm({
       });
     }
 
+    project.responsibles?.forEach(({ user }) => {
+      if (user.id && !map.has(user.id)) {
+        map.set(user.id, user);
+      }
+    });
+
     return Array.from(map.values());
-  }, [users, project.owner]);
+  }, [users, project.owner, project.responsibles]);
 
   const [name, setName] = useState(project.name || "");
   const [description, setDescription] = useState(project.description || "");
@@ -87,9 +100,16 @@ export default function ProjectEditForm({
     normalizeWorkflowStatus(project.status),
   );
 
-  const [ownerId, setOwnerId] = useState(
-    project.ownerId || project.owner?.id || ""
-  );
+  const [responsibleIds, setResponsibleIds] = useState(() => {
+    const primaryOwnerId = project.ownerId || project.owner?.id || "";
+    const linkedIds = (project.responsibles ?? []).map(
+      ({ user }) => user.id,
+    );
+
+    return Array.from(
+      new Set([primaryOwnerId, ...linkedIds].filter(Boolean)),
+    );
+  });
 
   const [startDate, setStartDate] = useState(toInputDate(project.startDate));
 
@@ -112,6 +132,11 @@ export default function ProjectEditForm({
       return;
     }
 
+    if (responsibleIds.length === 0) {
+      setError("Selecciona al menos un responsable del proyecto.");
+      return;
+    }
+
     setIsSaving(true);
     setError("");
 
@@ -125,7 +150,8 @@ export default function ProjectEditForm({
           name,
           description,
           status,
-          ownerId: ownerId || null,
+          ownerId: responsibleIds[0],
+          responsibleIds,
           startDate: startDate || null,
           estimatedEndDate: estimatedEndDate || null,
           actualEndDate: actualEndDate || null,
@@ -211,25 +237,39 @@ export default function ProjectEditForm({
             </select>
           </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-bold text-slate-700">
-              Responsable
-            </label>
+          <fieldset>
+            <legend className="mb-2 block text-sm font-bold text-slate-700">
+              Responsables
+            </legend>
 
-            <select
-              value={ownerId}
-              onChange={(event) => setOwnerId(event.target.value)}
-              className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-            >
-              <option value="">Sin responsable</option>
-
+            <div className="max-h-56 space-y-2 overflow-y-auto rounded-2xl border border-slate-300 p-3">
               {ownerOptions.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {getUserLabel(user)}
-                </option>
+                <label
+                  key={user.id}
+                  className="flex cursor-pointer items-center gap-3 rounded-xl px-2 py-2 hover:bg-slate-50"
+                >
+                  <input
+                    type="checkbox"
+                    checked={responsibleIds.includes(user.id)}
+                    onChange={(event) =>
+                      setResponsibleIds((currentIds) =>
+                        event.target.checked
+                          ? [...currentIds, user.id]
+                          : currentIds.filter((id) => id !== user.id),
+                      )
+                    }
+                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-slate-800">
+                    {getUserLabel(user)}
+                  </span>
+                </label>
               ))}
-            </select>
-          </div>
+            </div>
+            <p className="mt-2 text-xs text-slate-500">
+              Selecciona uno o varios. El primero será el responsable principal.
+            </p>
+          </fieldset>
         </div>
 
         <div className="grid gap-5 md:grid-cols-3">
