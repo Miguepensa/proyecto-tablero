@@ -27,6 +27,11 @@ enum ProjectStatus {
   PUESTA_EN_MARCHA
 }
 
+enum ProjectType {
+  ADMINISTRACION_TI
+  FABRICA_SOFTWARE
+}
+
 enum StoryStatus {
   BACKLOG
   PENDIENTE
@@ -93,6 +98,7 @@ model Project {
   folio            String?       @unique
   name             String
   description      String?
+  type             ProjectType   @default(ADMINISTRACION_TI)
   status           ProjectStatus @default(ANALISIS)
   ownerId          String
   startDate        DateTime?

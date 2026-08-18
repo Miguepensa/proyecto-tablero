@@ -5,6 +5,7 @@ import {
   normalizeFolioPrefix,
 } from "@/lib/folios";
 import { parseWorkflowStatus } from "@/lib/statuses";
+import { parseProjectType } from "@/lib/projectTypes";
 import { normalizeResponsibleIds } from "@/lib/projectResponsibles";
 import { NextResponse } from "next/server";
 
@@ -39,6 +40,7 @@ export async function POST(req: Request) {
     const description = body.description ? String(body.description).trim() : "";
     const folioPrefix = normalizeFolioPrefix(String(body.folioPrefix ?? ""));
     const status = parseWorkflowStatus(body.status ?? "ANALISIS");
+    const type = parseProjectType(body.type);
     const responsibleIds = normalizeResponsibleIds(
       body.responsibleIds,
       body.ownerId,
@@ -71,6 +73,13 @@ export async function POST(req: Request) {
     if (!status) {
       return NextResponse.json(
         { error: "El estado del proyecto no es válido" },
+        { status: 400 },
+      );
+    }
+
+    if (!type) {
+      return NextResponse.json(
+        { error: "Selecciona el tipo de proyecto" },
         { status: 400 },
       );
     }
@@ -112,6 +121,7 @@ export async function POST(req: Request) {
         folio,
         name,
         description,
+        type,
         status,
         ownerId: responsibleIds[0],
         responsibles: {

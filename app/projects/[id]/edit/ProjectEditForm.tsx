@@ -8,11 +8,16 @@ import {
   normalizeWorkflowStatus,
   parseWorkflowStatus,
 } from "@/lib/statuses";
+import {
+  PROJECT_TYPE_OPTIONS,
+  type ProjectType,
+} from "@/lib/projectTypes";
 
 type Project = {
   id: string;
   name: string;
   description?: string | null;
+  type: ProjectType;
   status: string;
   ownerId?: string | null;
   startDate?: string | null;
@@ -96,6 +101,7 @@ export default function ProjectEditForm({
 
   const [name, setName] = useState(project.name || "");
   const [description, setDescription] = useState(project.description || "");
+  const [projectType, setProjectType] = useState<ProjectType>(project.type);
   const [status, setStatus] = useState(
     normalizeWorkflowStatus(project.status),
   );
@@ -149,6 +155,7 @@ export default function ProjectEditForm({
         body: JSON.stringify({
           name,
           description,
+          type: projectType,
           status,
           ownerId: responsibleIds[0],
           responsibleIds,
@@ -214,7 +221,27 @@ export default function ProjectEditForm({
           />
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid gap-5 md:grid-cols-3">
+          <div>
+            <label className="mb-2 block text-sm font-bold text-slate-700">
+              Tipo de proyecto
+            </label>
+
+            <select
+              value={projectType}
+              onChange={(event) =>
+                setProjectType(event.target.value as ProjectType)
+              }
+              className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            >
+              {PROJECT_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div>
             <label className="mb-2 block text-sm font-bold text-slate-700">
               Estado

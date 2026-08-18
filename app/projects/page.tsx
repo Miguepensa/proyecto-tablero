@@ -7,6 +7,10 @@ import KpiFilterCard from "@/components/KpiFilterCard";
 import type { QuickFilter } from "@/lib/kpiFilters";
 import { getProjectResponsibleNames } from "@/lib/projectResponsibles";
 import {
+  PROJECT_TYPE_OPTIONS,
+  type ProjectType,
+} from "@/lib/projectTypes";
+import {
   WORKFLOW_STATUS_OPTIONS as statusOptions,
   getWorkflowStatusClasses as getStatusClasses,
   getWorkflowStatusLabel as getStatusLabel,
@@ -29,6 +33,7 @@ type Project = {
   folio?: string | null;
   name: string;
   description: string;
+  type: ProjectType;
   status: string;
   startDate?: string | null;
   estimatedEndDate?: string | null;
@@ -226,6 +231,8 @@ export default function ProjectsPage() {
   const [name, setName] = useState("");
   const [folioPrefix, setFolioPrefix] = useState("");
   const [description, setDescription] = useState("");
+  const [projectType, setProjectType] =
+    useState<ProjectType>("ADMINISTRACION_TI");
   const [status, setStatus] = useState("ANALISIS");
   const [responsibleIds, setResponsibleIds] = useState<string[]>([]);
   const [startDate, setStartDate] = useState("");
@@ -237,6 +244,8 @@ export default function ProjectsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("TODOS");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("TOTAL");
+  const [activeProjectType, setActiveProjectType] =
+    useState<ProjectType>("ADMINISTRACION_TI");
 
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [blockProjectId, setBlockProjectId] = useState("");
@@ -409,20 +418,26 @@ export default function ProjectsPage() {
 
       const matchesKpiFilter = matchesProjectQuickFilter(project, quickFilter);
 
-      return matchesSearch && matchesStatus && matchesKpiFilter;
-    });
-  }, [projects, search, statusFilter, quickFilter]);
+      const matchesType = project.type === activeProjectType;
 
-  const totalProjects = projects.length;
-  const openProjects = projects.filter(isProjectOpen).length;
-  const overdueProjects = projects.filter(isProjectOverdue).length;
-  const blockedProjects = projects.filter(isProjectBlocked).length;
-  const completedProjects = projects.filter(isProjectCompleted).length;
+      return matchesSearch && matchesStatus && matchesKpiFilter && matchesType;
+    });
+  }, [projects, search, statusFilter, quickFilter, activeProjectType]);
+
+  const projectsByType = projects.filter(
+    (project) => project.type === activeProjectType,
+  );
+  const totalProjects = projectsByType.length;
+  const openProjects = projectsByType.filter(isProjectOpen).length;
+  const overdueProjects = projectsByType.filter(isProjectOverdue).length;
+  const blockedProjects = projectsByType.filter(isProjectBlocked).length;
+  const completedProjects = projectsByType.filter(isProjectCompleted).length;
 
   function resetForm() {
     setName("");
     setFolioPrefix("");
     setDescription("");
+    setProjectType(activeProjectType);
     setStatus("ANALISIS");
     setResponsibleIds(users[0]?.id ? [users[0].id] : []);
     setStartDate("");
@@ -454,6 +469,7 @@ export default function ProjectsPage() {
         name,
         folioPrefix,
         description,
+        type: projectType,
         status,
         ownerId: responsibleIds[0],
         responsibleIds,
@@ -512,6 +528,49 @@ export default function ProjectsPage() {
               </button>
             </div>
           </header>
+
+          <nav
+            aria-label="Filtrar proyectos por tipo"
+            className="mb-6 grid gap-3 md:grid-cols-2"
+          >
+            {PROJECT_TYPE_OPTIONS.map((option) => {
+              const isActive = activeProjectType === option.value;
+              const count = projects.filter(
+                (project) => project.type === option.value,
+              ).length;
+
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => {
+                    setActiveProjectType(option.value);
+                    setProjectType(option.value);
+                    setQuickFilter("TOTAL");
+                    setStatusFilter("TODOS");
+                  }}
+                  className={`flex min-h-16 items-center justify-between rounded-2xl border px-5 py-4 text-left text-sm font-black shadow-sm transition focus:outline-none focus:ring-4 focus:ring-blue-100 ${
+                    isActive
+                      ? "border-blue-700 bg-blue-700 text-white shadow-blue-900/15"
+                      : "border-slate-200 bg-white text-slate-950 hover:border-blue-300 hover:bg-blue-50"
+                  }`}
+                >
+                  <span>{option.label}</span>
+                  <span
+                    className={`ml-4 inline-flex min-w-7 items-center justify-center rounded-full px-2 py-1 text-xs ${
+                      isActive
+                        ? "bg-white/20 text-white"
+                        : "bg-slate-100 text-slate-600"
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
 
           <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
             <KpiFilterCard
@@ -1003,22 +1062,44 @@ export default function ProjectsPage() {
                   </p>
                 </fieldset>
 
-                <label>
-                  <span className="mb-2 block text-sm font-bold text-slate-700">
-                    Estado
-                  </span>
-                  <select
-                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                  >
-                    {statusOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <div className="space-y-5">
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-bold text-slate-700">
+                      Tipo de proyecto
+                    </span>
+                    <select
+                      className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      value={projectType}
+                      onChange={(e) =>
+                        setProjectType(e.target.value as ProjectType)
+                      }
+                      required
+                    >
+                      {PROJECT_TYPE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-bold text-slate-700">
+                      Estado
+                    </span>
+                    <select
+                      className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value)}
+                    >
+                      {statusOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
               </div>
 
               <div className="grid gap-5 md:grid-cols-3">

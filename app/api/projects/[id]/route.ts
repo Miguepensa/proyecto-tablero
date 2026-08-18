@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { parseWorkflowStatus } from "@/lib/statuses";
+import { parseProjectType } from "@/lib/projectTypes";
 import { normalizeResponsibleIds } from "@/lib/projectResponsibles";
 import { NextResponse } from "next/server";
 
@@ -84,6 +85,7 @@ export async function PATCH(
     const isFullEdit =
       hasField(body, "name") ||
       hasField(body, "description") ||
+      hasField(body, "type") ||
       hasField(body, "ownerId") ||
       hasField(body, "responsibleIds") ||
       hasField(body, "startDate") ||
@@ -138,6 +140,17 @@ export async function PATCH(
       updateData.description = body.description
         ? String(body.description).trim()
         : "";
+
+      const type = parseProjectType(body.type ?? existingProject.type);
+
+      if (!type) {
+        return NextResponse.json(
+          { error: "Selecciona un tipo de proyecto válido" },
+          { status: 400 },
+        );
+      }
+
+      updateData.type = type;
 
       responsibleIds = normalizeResponsibleIds(
         body.responsibleIds,
@@ -216,6 +229,7 @@ export async function PATCH(
           folio: existingProject.folio,
           name: existingProject.name,
           description: existingProject.description,
+          type: existingProject.type,
           status: existingProject.status,
           ownerId: existingProject.ownerId,
           responsibleIds: existingProject.responsibles.map(
@@ -235,6 +249,7 @@ export async function PATCH(
           folio: updatedProject.folio,
           name: updatedProject.name,
           description: updatedProject.description,
+          type: updatedProject.type,
           status: updatedProject.status,
           ownerId: updatedProject.ownerId,
           responsibleIds: updatedProject.responsibles.map(
@@ -295,6 +310,7 @@ export async function DELETE(
           folio: existingProject.folio,
           name: existingProject.name,
           description: existingProject.description,
+          type: existingProject.type,
           status: existingProject.status,
           ownerId: existingProject.ownerId,
           startDate: existingProject.startDate,
