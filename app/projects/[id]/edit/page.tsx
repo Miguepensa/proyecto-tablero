@@ -6,6 +6,7 @@ type Project = {
   id: string;
   name: string;
   description?: string | null;
+  type: "ADMINISTRACION_TI" | "FABRICA_SOFTWARE";
   status: string;
   ownerId?: string | null;
   startDate?: string | null;
