@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import ProjectStoryCreateButton from "./ProjectStoryCreateButton";
@@ -52,6 +53,20 @@ type Project = {
       email?: string | null;
     };
   }>;
+};
+
+const PROJECT_TYPE_IMAGES: Record<
+  ProjectType,
+  { src: string; alt: string }
+> = {
+  ADMINISTRACION_TI: {
+    src: "/project-types/administracion-ti.jpeg",
+    alt: "Ilustración de audífonos para Administración de sistemas de TI",
+  },
+  FABRICA_SOFTWARE: {
+    src: "/project-types/fabrica-software.jpeg",
+    alt: "Ilustración de lentes para Fábrica de software",
+  },
 };
 
 function normalizeFolioPrefixInput(value: string) {
@@ -535,6 +550,7 @@ export default function ProjectsPage() {
           >
             {PROJECT_TYPE_OPTIONS.map((option) => {
               const isActive = activeProjectType === option.value;
+              const image = PROJECT_TYPE_IMAGES[option.value];
               const count = projects.filter(
                 (project) => project.type === option.value,
               ).length;
@@ -551,15 +567,37 @@ export default function ProjectsPage() {
                     setQuickFilter("TOTAL");
                     setStatusFilter("TODOS");
                   }}
-                  className={`flex min-h-16 items-center justify-between rounded-2xl border px-5 py-4 text-left text-sm font-black shadow-sm transition focus:outline-none focus:ring-4 focus:ring-blue-100 ${
+                  className={`flex min-h-36 items-center gap-4 overflow-hidden rounded-2xl border p-3 text-left shadow-sm transition focus:outline-none focus:ring-4 focus:ring-blue-100 sm:p-4 ${
                     isActive
                       ? "border-blue-700 bg-blue-700 text-white shadow-blue-900/15"
                       : "border-slate-200 bg-white text-slate-950 hover:border-blue-300 hover:bg-blue-50"
                   }`}
                 >
-                  <span>{option.label}</span>
+                  <span className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1 shadow-sm">
+                    <Image
+                      src={image.src}
+                      alt={image.alt}
+                      width={120}
+                      height={120}
+                      className="h-full w-full object-contain"
+                    />
+                  </span>
+
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-black sm:text-base">
+                      {option.label}
+                    </span>
+                    <span
+                      className={`mt-1 block text-xs font-medium ${
+                        isActive ? "text-blue-100" : "text-slate-500"
+                      }`}
+                    >
+                      Ver proyectos de esta área
+                    </span>
+                  </span>
+
                   <span
-                    className={`ml-4 inline-flex min-w-7 items-center justify-center rounded-full px-2 py-1 text-xs ${
+                    className={`inline-flex min-w-7 shrink-0 items-center justify-center rounded-full px-2 py-1 text-xs font-black ${
                       isActive
                         ? "bg-white/20 text-white"
                         : "bg-slate-100 text-slate-600"
